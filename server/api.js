@@ -81,4 +81,20 @@ router.get('/api/heatmap/urls', async (req, res) => {
   }
 });
 
+// Add this route to server/api.js
+router.get('/api/test', async (req, res) => {
+  try {
+    // Simple test query
+    const [rows] = await db.query('SELECT 1 as test');
+    res.status(200).json({ success: true, dbConnected: true, data: rows });
+  } catch (error) {
+    console.error('Database connection error:', error);
+    res.status(500).json({ 
+      success: false, 
+      dbConnected: false, 
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router; 
