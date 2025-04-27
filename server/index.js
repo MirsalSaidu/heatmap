@@ -6,8 +6,21 @@ const cors = require('cors');
 
 const app = express();
 
-// Add CORS support
-app.use(cors());
+// Allow requests from any origin
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Set CORS headers for all responses including static files
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../src')));
 app.use(express.static(path.join(__dirname, '..')));
