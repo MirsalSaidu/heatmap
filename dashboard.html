@@ -757,6 +757,135 @@
           chartInstance.update();
         }
       }
+      
+      // Make the refresh button work
+      document.querySelector('.btn-outline-primary:has(.bi-arrow-clockwise)').addEventListener('click', function() {
+        if (urlSelect.value) {
+          loadHeatmapData(urlSelect.value, dateFrom.value, dateTo.value);
+        }
+      });
+      
+      // Make the fullscreen button work
+      document.querySelector('.btn-outline-primary:has(.bi-fullscreen)').addEventListener('click', function() {
+        const container = document.getElementById('heatmap-container');
+        
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          container.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable fullscreen: ${err.message}`);
+          });
+        }
+      });
+      
+      // Make the export data button work
+      document.querySelector('.d-flex.justify-content-between.align-items-center.mb-4 .btn-primary').addEventListener('click', function() {
+        if (!urlSelect.value) {
+          alert('Please select a URL first');
+          return;
+        }
+        
+        // Create CSV from current data
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Timestamp,X,Y,Page X,Page Y,Path,URL,Viewport Width,Viewport Height,Session ID\n";
+        
+        viewer.data.forEach(item => {
+          const row = [
+            new Date(item.timestamp).toISOString(),
+            item.x,
+            item.y,
+            item.page_x || item.pageX,
+            item.page_y || item.pageY,
+            item.path,
+            item.url,
+            item.viewport_width || item.viewportWidth,
+            item.viewport_height || item.viewportHeight,
+            item.session_id
+          ].join(",");
+          csvContent += row + "\n";
+        });
+        
+        // Create download link
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `heatmap_data_${urlSelect.value.replace(/[^a-z0-9]/gi, '_')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+      
+      // Make the help button work
+      document.getElementById('help-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Create a simple modal for help
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        modal.style.zIndex = '2000';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        
+        const content = document.createElement('div');
+        content.style.backgroundColor = 'white';
+        content.style.padding = '2rem';
+        content.style.borderRadius = '12px';
+        content.style.maxWidth = '600px';
+        content.style.width = '90%';
+        content.style.maxHeight = '80vh';
+        content.style.overflow = 'auto';
+        
+        content.innerHTML = `
+          <h3>HeatmapiQ Help</h3>
+          <hr>
+          <h5>Getting Started</h5>
+          <p>To start tracking clicks on your website, copy the installation code snippet and add it to your website pages.</p>
+          <h5>Viewing Analytics</h5>
+          <p>Once data is collected, use the controls panel to select:</p>
+          <ul>
+            <li>URL to analyze</li>
+            <li>Date range to filter data</li>
+            <li>Visualization preferences</li>
+          </ul>
+          <h5>Understanding the Dashboard</h5>
+          <p>The dashboard shows:</p>
+          <ul>
+            <li>Total clicks tracked</li>
+            <li>Number of pages being tracked</li>
+            <li>Active user sessions</li>
+            <li>Heatmap visualization of clicks</li>
+            <li>Distribution of clicks across the page</li>
+          </ul>
+          <button class="btn btn-primary w-100 mt-3" id="close-help">Close</button>
+        `;
+        
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        
+        document.getElementById('close-help').addEventListener('click', function() {
+          document.body.removeChild(modal);
+        });
+        
+        modal.addEventListener('click', function(e) {
+          if (e.target === modal) {
+            document.body.removeChild(modal);
+          }
+        });
+      });
+      
+      // Fix the Analytics, Settings, and Help sidebar links
+      document.querySelectorAll('.sidebar .nav-link:not(.active)').forEach(link => {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          alert('This feature is coming soon!');
+        });
+      });
     });
   </script>
   
