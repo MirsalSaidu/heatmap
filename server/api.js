@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('./db');
+const { auth } = require('./auth');
 
 // Add URL normalization in both save and get endpoints
 function normalizeUrl(url) {
@@ -115,6 +116,19 @@ router.get('/api/test-db', async (req, res) => {
   } catch (error) {
     console.error('DB test error:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Add this route to allow adding a website
+router.post('/api/websites', auth, async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ success: false, message: 'URL is required' });
+  try {
+    // Save to DB, associate with user if needed
+    await db.query('INSERT INTO websites (user_id, url) VALUES (?, ?)', [req.user.id, url]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to add URL', error: err.message });
   }
 });
 

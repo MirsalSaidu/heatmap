@@ -502,6 +502,47 @@
     <i class="bi bi-question-lg"></i>
   </a>
   
+  <!-- Add URL Button -->
+  <button class="btn btn-primary" id="add-url-btn" style="position: fixed; bottom: 2rem; left: 2rem; z-index: 2000;">
+    <i class="bi bi-plus"></i> Add Website
+  </button>
+  
+  <!-- Add URL Modal -->
+  <div class="modal fade" id="addUrlModal" tabindex="-1" aria-labelledby="addUrlModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="add-url-form">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addUrlModalLabel">Add Website to Track</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label for="new-url" class="form-label">Website URL</label>
+          <input type="url" class="form-control" id="new-url" placeholder="https://example.com" required>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Tracking Code Modal -->
+  <div class="modal fade" id="trackingCodeModal" tabindex="-1" aria-labelledby="trackingCodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="trackingCodeModalLabel">Tracking Code</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Add this code to <b id="tracking-url"></b>:</p>
+          <pre><code id="tracking-code"></code></pre>
+          <button class="btn btn-outline-secondary" id="copy-tracking-code">Copy Code</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module">
@@ -945,6 +986,76 @@
         this.classList.remove('btn-success');
         this.classList.add('btn-primary');
       }, 2000);
+    });
+  </script>
+  
+  <script>
+    // Show the Add URL modal
+    document.getElementById('add-url-btn').addEventListener('click', function() {
+      new bootstrap.Modal(document.getElementById('addUrlModal')).show();
+    });
+
+    // Handle Add URL form submission
+    document.getElementById('add-url-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const url = document.getElementById('new-url').value.trim();
+
+      fetch('/api/websites', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': localStorage.getItem('authToken')
+        },
+        body: JSON.stringify({ url })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showTrackingCode(url);
+          bootstrap.Modal.getInstance(document.getElementById('addUrlModal')).hide();
+        } else {
+          alert(data.message || 'Failed to add URL');
+        }
+      });
+    });
+
+    // Show the tracking code modal
+    function showTrackingCode(url) {
+      document.getElementById('tracking-url').textContent = url;
+      document.getElementById('tracking-code').textContent =
+`<script type="module">
+  import Heatmap from 'https://heatmap-beige.vercel.app/heatmap.js';
+  const heatmap = new Heatmap({
+    endpoint: 'https://heatmap-beige.vercel.app/api/heatmap',
+    url: '${url}',
+    sampleRate: 1.0
+  });
+</script>
+<script>
+  if (typeof window.Heatmap === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://heatmap-beige.vercel.app/heatmap.js';
+    script.onload = function() {
+      if (typeof window.Heatmap !== 'undefined') {
+        const heatmap = new window.Heatmap({
+          endpoint: 'https://heatmap-beige.vercel.app/api/heatmap',
+          url: '${url}',
+          sampleRate: 1.0
+        });
+      }
+    };
+    document.head.appendChild(script);
+  }
+</script>`;
+      new bootstrap.Modal(document.getElementById('trackingCodeModal')).show();
+    }
+
+    // Copy tracking code to clipboard
+    document.getElementById('copy-tracking-code').addEventListener('click', function() {
+      const code = document.getElementById('tracking-code').textContent;
+      navigator.clipboard.writeText(code);
+      this.textContent = 'Copied!';
+      setTimeout(() => { this.textContent = 'Copy Code'; }, 2000);
     });
   </script>
 </body>
