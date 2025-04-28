@@ -1021,16 +1021,14 @@
 
     // Show the tracking code modal
     function showTrackingCode(url) {
-      document.getElementById('tracking-url').textContent = url;
-      document.getElementById('tracking-code').textContent =
-`<script type="module">
+      const code = `<script type="module">
   import Heatmap from 'https://heatmap-beige.vercel.app/heatmap.js';
   const heatmap = new Heatmap({
     endpoint: 'https://heatmap-beige.vercel.app/api/heatmap',
     url: '${url}',
     sampleRate: 1.0
   });
-</script>
+<\/script>
 <script>
   if (typeof window.Heatmap === 'undefined') {
     const script = document.createElement('script');
@@ -1046,7 +1044,9 @@
     };
     document.head.appendChild(script);
   }
-</script>`;
+<\/script>`;
+      document.getElementById('tracking-url').textContent = url;
+      document.getElementById('tracking-code').textContent = code;
       new bootstrap.Modal(document.getElementById('trackingCodeModal')).show();
     }
 
