@@ -1,14 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const cookieParser = require('cookie-parser');
 const apiRoutes = require('./api');
 const { router: authRoutes, auth, admin } = require('./auth');
 const db = require('./db');
+const session = require('./session');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Middleware - Important: cookieParser must be before route handlers
+app.use(cookieParser());
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -24,68 +27,111 @@ app.use((req, res, next) => {
   next();
 });
 
-// Auth routes
-app.use('/api/auth', authRoutes);
-
-// API routes - protected and unprotected
-app.use('/api/heatmap', apiRoutes);
-
-// Public routes - accessible without login
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, '../login.html'));
-});
-
-app.get('/register', (req, res) => {
-  res.sendFile(path.join(__dirname, '../register.html'));
-});
-
-// Protected routes - require authentication
-const serveWithAuthCheck = (req, res, filePath, adminRequired = false) => {
-  const token = req.header('x-auth-token') || req.cookies?.authToken;
+// Authentication middleware for protected routes
+const checkAuth = (req, res, next) => {
+  // Check for token in cookies or headers
+  const token = req.cookies?.authToken || req.header('x-auth-token');
   
   if (!token) {
+    // For API routes, return JSON error
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+    // For non-API routes, redirect to login
     return res.redirect('/login');
   }
   
   try {
-    const jwt = require('jsonwebtoken');
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-    
-    const decoded = jwt.verify(token, JWT_SECRET);
-    
-    if (adminRequired && decoded.user.role !== 'admin') {
-      return res.redirect('/dashboard');
+    const decoded = session.verifySession(token);
+    if (!decoded) {
+      // Invalid or expired token
+      res.clearCookie('authToken');
+      return res.redirect('/login');
     }
     
-    res.sendFile(path.join(__dirname, filePath));
+    req.user = decoded.user;
+    next();
   } catch (err) {
+    console.error('Auth error:', err);
+    res.clearCookie('authToken');
     return res.redirect('/login');
   }
 };
 
-// Admin route - requires admin role
-app.get('/admin', (req, res) => {
-  serveWithAuthCheck(req, res, '../admin.html', true);
+// Admin check middleware
+const checkAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.redirect('/dashboard');
+  }
+  next();
+};
+
+// Auth routes - public
+app.use('/api/auth', authRoutes);
+
+// API routes - some may need protection
+app.use('/api/heatmap', apiRoutes);
+
+// Public routes - accessible without login
+app.get('/login', (req, res) => {
+  // If already authenticated, redirect to appropriate page
+  const token = req.cookies?.authToken || req.header('x-auth-token');
+  if (token) {
+    try {
+      const decoded = session.verifySession(token);
+      if (decoded) {
+        return res.redirect(decoded.user.role === 'admin' ? '/admin' : '/dashboard');
+      }
+    } catch (err) {
+      // Invalid token, continue to login page
+      res.clearCookie('authToken');
+    }
+  }
+  
+  res.sendFile(path.join(__dirname, '../login.html'));
 });
 
-// Dashboard route - requires authentication
-app.get('/dashboard', (req, res) => {
-  serveWithAuthCheck(req, res, '../dashboard.html');
+app.get('/register', (req, res) => {
+  // If already authenticated, redirect to appropriate page
+  const token = req.cookies?.authToken || req.header('x-auth-token');
+  if (token) {
+    try {
+      const decoded = session.verifySession(token);
+      if (decoded) {
+        return res.redirect(decoded.user.role === 'admin' ? '/admin' : '/dashboard');
+      }
+    } catch (err) {
+      // Invalid token, continue to register page
+      res.clearCookie('authToken');
+    }
+  }
+  
+  res.sendFile(path.join(__dirname, '../register.html'));
 });
 
-// Main route - check auth and redirect accordingly
+// Protected routes
+app.get('/dashboard', checkAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, '../dashboard.html'));
+});
+
+app.get('/admin', checkAuth, checkAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, '../admin.html'));
+});
+
+// Main route - redirect based on auth status
 app.get('/', (req, res) => {
-  const token = req.header('x-auth-token') || req.cookies?.authToken;
+  const token = req.cookies?.authToken || req.header('x-auth-token');
   
   if (!token) {
     return res.redirect('/login');
   }
   
   try {
-    const jwt = require('jsonwebtoken');
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-    
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = session.verifySession(token);
+    if (!decoded) {
+      res.clearCookie('authToken');
+      return res.redirect('/login');
+    }
     
     if (decoded.user.role === 'admin') {
       return res.redirect('/admin');
@@ -93,13 +139,11 @@ app.get('/', (req, res) => {
       return res.redirect('/dashboard');
     }
   } catch (err) {
+    console.error('Auth error:', err);
+    res.clearCookie('authToken');
     return res.redirect('/login');
   }
 });
-
-// Install cookie parser for better session handling
-const cookieParser = require('cookie-parser');
-app.use(cookieParser());
 
 // Start server
 app.listen(PORT, async () => {
