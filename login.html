@@ -53,6 +53,16 @@
   </style>
 </head>
 <body>
+  <script>
+    // If already logged in, redirect to dashboard/admin
+    (function() {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user && user.role) {
+        window.location.href = user.role === 'admin' ? '/admin' : '/dashboard';
+      }
+    })();
+  </script>
+  
   <div class="login-container">
     <div class="text-center mb-4">
       <div class="logo">

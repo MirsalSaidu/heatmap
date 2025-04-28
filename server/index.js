@@ -74,25 +74,23 @@ app.use('/api/heatmap', apiRoutes);
 
 // Public routes - accessible without login
 app.get('/login', (req, res) => {
-  // If already authenticated, redirect to appropriate page
   const token = req.cookies?.authToken || req.header('x-auth-token');
   if (token) {
     try {
       const decoded = session.verifySession(token);
       if (decoded) {
+        // Already logged in, redirect to dashboard or admin
         return res.redirect(decoded.user.role === 'admin' ? '/admin' : '/dashboard');
       }
     } catch (err) {
-      // Invalid token, continue to login page
+      // Invalid token, clear cookie and show login
       res.clearCookie('authToken');
     }
   }
-  
   res.sendFile(path.join(__dirname, '../login.html'));
 });
 
 app.get('/register', (req, res) => {
-  // If already authenticated, redirect to appropriate page
   const token = req.cookies?.authToken || req.header('x-auth-token');
   if (token) {
     try {
@@ -101,11 +99,9 @@ app.get('/register', (req, res) => {
         return res.redirect(decoded.user.role === 'admin' ? '/admin' : '/dashboard');
       }
     } catch (err) {
-      // Invalid token, continue to register page
       res.clearCookie('authToken');
     }
   }
-  
   res.sendFile(path.join(__dirname, '../register.html'));
 });
 
