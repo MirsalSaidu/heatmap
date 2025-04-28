@@ -125,7 +125,7 @@ router.get('/api/test-db', async (req, res) => {
   }
 });
 
-// Modify this route to work without auth for now
+// Modify this route to work without auth for now and add better error handling
 router.post('/api/websites', async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ success: false, message: 'URL is required' });
@@ -133,15 +133,46 @@ router.post('/api/websites', async (req, res) => {
   try {
     new URL(url); // Validate URL
     
-    // Insert without user_id for now
-    await db.query('INSERT INTO websites (url) VALUES (?)', [url]);
-    res.json({ success: true });
+    // Log for debugging
+    console.log('Attempting to insert URL:', url);
+    
+    try {
+      // Check if websites table exists first
+      const [tables] = await db.query("SHOW TABLES LIKE 'websites'");
+      
+      if (tables.length === 0) {
+        // Create websites table if it doesn't exist
+        console.log('Creating websites table');
+        await db.query(`
+          CREATE TABLE websites (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            url VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+      }
+      
+      // Insert URL
+      await db.query('INSERT INTO websites (url) VALUES (?)', [url]);
+      
+      // Return success
+      res.json({ success: true, message: 'URL added successfully' });
+    } catch (dbErr) {
+      console.error('Database error:', dbErr);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Database error', 
+        error: dbErr.message,
+        stack: dbErr.stack
+      });
+    }
   } catch (err) {
     console.error('Error adding website:', err);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to add URL', 
-      error: err.message 
+      error: err.message,
+      stack: err.stack
     });
   }
 });
