@@ -66,4 +66,10 @@ class Heatmap {
   }
 }
 
-export default Heatmap; 
+// Add this specific export statement for ES modules
+export default Heatmap;
+
+// Add this for non-module environments
+if (typeof window !== 'undefined') {
+  window.Heatmap = Heatmap;
+} 

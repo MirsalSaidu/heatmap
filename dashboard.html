@@ -457,7 +457,7 @@
           <p class="text-muted mb-3">Add this code to your website to start tracking clicks:</p>
           <div class="bg-light p-3 rounded" style="position: relative;">
             <pre class="mb-0"><code id="tracking-code">&lt;script type="module"&gt;
-  // Load the heatmap tracking script
+  // Try ES module import first
   import Heatmap from 'https://heatmap-beige.vercel.app/heatmap.js';
   
   // Initialize the heatmap tracking
@@ -466,8 +466,27 @@
     sampleRate: 1.0 // Capture all clicks (1.0 = 100%)
   });
   
-  // Optional: Log when tracking is initialized
-  console.log('Heatmap tracking initialized');
+  console.log('Heatmap tracking initialized with ES modules');
+&lt;/script&gt;
+
+&lt;!-- Fallback for non-module support --&gt;
+&lt;script&gt;
+  // Only execute if Heatmap is not already defined (module failed)
+  if (typeof window.Heatmap === 'undefined') {
+    // Load the script
+    const script = document.createElement('script');
+    script.src = 'https://heatmap-beige.vercel.app/heatmap.js';
+    script.onload = function() {
+      if (typeof window.Heatmap !== 'undefined') {
+        const heatmap = new window.Heatmap({
+          endpoint: 'https://heatmap-beige.vercel.app/api/heatmap',
+          sampleRate: 1.0
+        });
+        console.log('Heatmap tracking initialized with fallback script');
+      }
+    };
+    document.head.appendChild(script);
+  }
 &lt;/script&gt;</code></pre>
           </div>
           <p class="mt-3 mb-0 text-muted">
