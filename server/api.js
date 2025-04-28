@@ -123,8 +123,13 @@ router.get('/api/test-db', async (req, res) => {
 router.post('/api/websites', auth, async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ success: false, message: 'URL is required' });
+  // Optionally, validate the URL here as well
   try {
-    // Save to DB, associate with user if needed
+    new URL(url); // Throws if invalid
+  } catch (e) {
+    return res.status(400).json({ success: false, message: 'Invalid URL' });
+  }
+  try {
     await db.query('INSERT INTO websites (user_id, url) VALUES (?, ?)', [req.user.id, url]);
     res.json({ success: true });
   } catch (err) {

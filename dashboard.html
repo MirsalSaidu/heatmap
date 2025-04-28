@@ -995,10 +995,25 @@
       new bootstrap.Modal(document.getElementById('addUrlModal')).show();
     });
 
+    function isValidUrl(url) {
+      try {
+        const u = new URL(url);
+        // Accepts any valid http(s) URL, including subdomains
+        return u.protocol === "http:" || u.protocol === "https:";
+      } catch (e) {
+        return false;
+      }
+    }
+
     // Handle Add URL form submission
     document.getElementById('add-url-form').addEventListener('submit', function(e) {
       e.preventDefault();
       const url = document.getElementById('new-url').value.trim();
+
+      if (!isValidUrl(url)) {
+        alert('Please enter a valid URL including http:// or https://');
+        return;
+      }
 
       fetch('/api/websites', {
         method: 'POST',
