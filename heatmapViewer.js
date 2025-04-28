@@ -19,14 +19,18 @@ class HeatmapViewer {
 
   async loadScreenshot(url) {
     try {
-      // Use a third-party screenshot service instead
-      const screenshotUrl = `https://api.screenshotmachine.com/?key=YOUR_API_KEY&url=${encodeURIComponent(url)}&dimension=1024x768`;
+      // Use a real screenshot service with an actual API key
+      const screenshotUrl = `https://shot.screenshotapi.net/screenshot?token=SZOCR33-XWKMRS9-GQMETT9-X4NHMN0&url=${encodeURIComponent(url)}&width=1024&height=768&fresh=true&output=image&file_type=png`;
       
+      console.log("Fetching screenshot for:", url);
       const response = await fetch(screenshotUrl);
+      
       if (response.ok) {
-        return await response.blob();
+        const blob = await response.blob();
+        console.log("Screenshot loaded successfully");
+        return blob;
       } else {
-        console.warn('Failed to load screenshot from external API');
+        console.warn('Failed to load screenshot, status:', response.status);
         return null;
       }
     } catch (error) {
@@ -47,6 +51,7 @@ class HeatmapViewer {
 
   async render() {
     this.container.innerHTML = '';
+    console.log("Rendering heatmap with", this.data.length, "data points");
     
     // Create a wrapper for positioning
     const wrapper = document.createElement('div');
@@ -54,9 +59,136 @@ class HeatmapViewer {
     wrapper.style.width = '100%';
     this.container.appendChild(wrapper);
     
-    // Create placeholder for website background
+    // Try to load screenshot for website background
     if (this.options.showBackground && this.data.length > 0) {
       const url = this.data[0].url;
+      console.log("Attempting to load screenshot for:", url);
+      
+      try {
+        // Add loading indicator
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.textContent = 'Loading screenshot...';
+        loadingIndicator.style.padding = '20px';
+        loadingIndicator.style.textAlign = 'center';
+        wrapper.appendChild(loadingIndicator);
+        
+        const screenshot = await this.loadScreenshot(url);
+        
+        // Remove loading indicator
+        wrapper.removeChild(loadingIndicator);
+        
+        if (screenshot) {
+          // Create and append the image
+          const backgroundImg = document.createElement('img');
+          backgroundImg.src = URL.createObjectURL(screenshot);
+          backgroundImg.style.width = '100%';
+          backgroundImg.style.display = 'block';
+          backgroundImg.style.maxHeight = '800px';
+          backgroundImg.style.objectFit = 'contain';
+          backgroundImg.style.borderRadius = '8px';
+          backgroundImg.style.border = '1px solid #ddd';
+          wrapper.appendChild(backgroundImg);
+          
+          // Set up onload handler to adjust canvas dimensions to match image
+          backgroundImg.onload = () => {
+            // Update canvas dimensions to match image
+            const canvas = wrapper.querySelector('canvas');
+            if (canvas) {
+              canvas.width = backgroundImg.clientWidth;
+              canvas.height = backgroundImg.clientHeight;
+              this.drawHeatmap(canvas, backgroundImg.clientWidth, backgroundImg.clientHeight);
+            }
+          };
+        } else {
+          this.createPlaceholder(wrapper, url);
+        }
+      } catch (error) {
+        console.error("Error in screenshot rendering:", error);
+        this.createPlaceholder(wrapper, url);
+      }
+    } else {
+      // If no background needed or no data, just create placeholder
+      if (this.data.length > 0) {
+        this.createPlaceholder(wrapper, this.data[0].url);
+      } else {
+        // Display a message when no data is available
+        const noDataMsg = document.createElement('div');
+        noDataMsg.style.width = '100%';
+        noDataMsg.style.height = '400px';
+        noDataMsg.style.display = 'flex';
+        noDataMsg.style.alignItems = 'center';
+        noDataMsg.style.justifyContent = 'center';
+        noDataMsg.style.color = '#777';
+        noDataMsg.style.fontSize = '1.2rem';
+        noDataMsg.style.fontStyle = 'italic';
+        noDataMsg.style.backgroundColor = '#f9f9f9';
+        noDataMsg.style.border = '1px solid #eee';
+        noDataMsg.style.borderRadius = '8px';
+        noDataMsg.textContent = 'No click data available for the selected criteria';
+        wrapper.appendChild(noDataMsg);
+        return;
+      }
+    }
+    
+    // Create canvas for heatmap
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'absolute';  // Always absolute to overlay properly
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '10';  // Make sure it's above the background
+    wrapper.appendChild(canvas);
+    
+    // Get dimensions
+    const width = wrapper.clientWidth;
+    const height = this.options.showBackground ? 600 : 500;
+    
+    // Set canvas size
+    canvas.width = width;
+    canvas.height = height;
+    
+    // Draw heatmap
+    this.drawHeatmap(canvas, width, height);
+  }
+
+  // Extract drawing logic to a separate method
+  drawHeatmap(canvas, width, height) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, width, height);
+    
+    if (this.data.length === 0) return;
+    
+    // Find the maximum viewport dimensions to normalize points
+    const maxViewportWidth = Math.max(...this.data.map(d => d.viewport_width || 1000));
+    const maxViewportHeight = Math.max(...this.data.map(d => d.viewport_height || 800));
+    
+    // Draw heatmap points
+    this.data.forEach(point => {
+      // Handle missing viewport dimensions
+      const viewportWidth = point.viewport_width || maxViewportWidth || 1000;
+      const viewportHeight = point.viewport_height || maxViewportHeight || 800;
+      
+      // Calculate position
+      const x = (point.x / viewportWidth) * width;
+      const y = (point.y / viewportHeight) * height;
+      
+      // Create heat point
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, this.options.radius);
+      gradient.addColorStop(0, `rgba(255, 0, 0, ${this.options.maxOpacity})`);
+      gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, this.options.radius, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+  }
+
+  // Helper method to create placeholder
+  createPlaceholder(wrapper, url) {
+    try {
       const hostname = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
       
       // Create placeholder with URL info
@@ -87,73 +219,16 @@ class HeatmapViewer {
         </div>
       `;
       wrapper.appendChild(placeholder);
-    }
-    
-    // Create canvas for heatmap
-    const canvas = document.createElement('canvas');
-    canvas.style.position = 'absolute';  // Always absolute to overlay properly
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.pointerEvents = 'none';
-    canvas.style.zIndex = '10';  // Make sure it's above the placeholder
-    wrapper.appendChild(canvas);
-    
-    // Get dimensions
-    const width = wrapper.clientWidth;
-    const height = this.options.showBackground ? 600 : 500;
-    
-    // Set canvas size
-    canvas.width = width;
-    canvas.height = height;
-    
-    // Draw heatmap
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, width, height);
-    
-    // Draw heatmap points
-    if (this.data.length > 0) {
-      // Find the maximum viewport dimensions to normalize points
-      const maxViewportWidth = Math.max(...this.data.map(d => d.viewport_width || 1000));
-      const maxViewportHeight = Math.max(...this.data.map(d => d.viewport_height || 800));
-      
-      this.data.forEach(point => {
-        // Handle missing viewport dimensions
-        const viewportWidth = point.viewport_width || maxViewportWidth || 1000;
-        const viewportHeight = point.viewport_height || maxViewportHeight || 800;
-        
-        // Calculate position
-        const x = (point.x / viewportWidth) * width;
-        const y = (point.y / viewportHeight) * height;
-        
-        // Create heat point
-        const gradient = ctx.createRadialGradient(x, y, 0, x, y, this.options.radius);
-        gradient.addColorStop(0, `rgba(255, 0, 0, ${this.options.maxOpacity})`);
-        gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-        
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(x, y, this.options.radius, 0, 2 * Math.PI);
-        ctx.fill();
-      });
-    } else {
-      // Display a message when no data is available
-      const noDataMsg = document.createElement('div');
-      noDataMsg.style.width = '100%';
-      noDataMsg.style.height = '400px';
-      noDataMsg.style.display = 'flex';
-      noDataMsg.style.alignItems = 'center';
-      noDataMsg.style.justifyContent = 'center';
-      noDataMsg.style.color = '#777';
-      noDataMsg.style.fontSize = '1.2rem';
-      noDataMsg.style.fontStyle = 'italic';
-      noDataMsg.style.backgroundColor = '#f9f9f9';
-      noDataMsg.style.border = '1px solid #eee';
-      noDataMsg.style.borderRadius = '8px';
-      noDataMsg.textContent = 'No click data available for the selected criteria';
-      wrapper.appendChild(noDataMsg);
-      return;
+    } catch (e) {
+      console.error("Error creating placeholder:", e);
+      const errorPlaceholder = document.createElement('div');
+      errorPlaceholder.style.padding = '20px';
+      errorPlaceholder.style.color = '#721c24';
+      errorPlaceholder.style.backgroundColor = '#f8d7da';
+      errorPlaceholder.style.border = '1px solid #f5c6cb';
+      errorPlaceholder.style.borderRadius = '8px';
+      errorPlaceholder.textContent = 'Error displaying URL: ' + url;
+      wrapper.appendChild(errorPlaceholder);
     }
   }
 }

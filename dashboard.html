@@ -854,8 +854,20 @@
       
       // Make the refresh button work
       document.querySelector('.btn-outline-primary:has(.bi-arrow-clockwise)').addEventListener('click', function() {
+        console.log("Refresh button clicked");
         if (urlSelect.value) {
+          // Clear existing data first
+          viewer.data = [];
+          viewer.render();
+          
+          // Show loading message
+          const container = document.getElementById('heatmap-container');
+          container.innerHTML = '<div style="padding: 20px; text-align: center;">Loading data...</div>';
+          
+          // Load fresh data
           loadHeatmapData(urlSelect.value, dateFrom.value, dateTo.value);
+        } else {
+          alert("Please select a URL first");
         }
       });
       
