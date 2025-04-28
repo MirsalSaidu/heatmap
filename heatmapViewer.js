@@ -19,23 +19,14 @@ class HeatmapViewer {
 
   async loadScreenshot(url) {
     try {
-      // Try to fetch screenshot from API
-      const screenshotUrl = `/api/screenshot?url=${encodeURIComponent(url)}`;
-      const response = await fetch(screenshotUrl);
+      // Use a third-party screenshot service instead
+      const screenshotUrl = `https://api.screenshotmachine.com/?key=YOUR_API_KEY&url=${encodeURIComponent(url)}&dimension=1024x768`;
       
+      const response = await fetch(screenshotUrl);
       if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        
-        // Check if response is JSON (our error message) or an actual image
-        if (contentType && contentType.includes('application/json')) {
-          console.log('Screenshot API returned JSON response - no screenshot available');
-          return null;
-        }
-        
-        // If we got an actual image blob
         return await response.blob();
       } else {
-        console.warn('Failed to load screenshot, using placeholder');
+        console.warn('Failed to load screenshot from external API');
         return null;
       }
     } catch (error) {
