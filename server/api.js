@@ -2,10 +2,19 @@ const express = require('express');
 const router = express.Router();
 const db = require('./db');
 
+// Add URL normalization in both save and get endpoints
+function normalizeUrl(url) {
+  // Remove protocol, trailing slashes, and query params
+  return url.replace(/^https?:\/\//, '')
+            .replace(/\/$/, '')
+            .split('?')[0];
+}
+
 // Save heatmap data
 router.post('/api/heatmap', async (req, res) => {
   try {
     const { events, url, userAgent } = req.body;
+    const normalizedUrl = normalizeUrl(url);
     
     // Prepare batch insert
     const values = events.map(event => [
@@ -16,7 +25,7 @@ router.post('/api/heatmap', async (req, res) => {
       event.pageX,
       event.pageY,
       event.path,
-      url,
+      normalizedUrl,
       event.viewportWidth,
       event.viewportHeight,
       userAgent
@@ -43,9 +52,10 @@ router.post('/api/heatmap', async (req, res) => {
 router.get('/api/heatmap', async (req, res) => {
   try {
     const { url, startDate, endDate } = req.query;
+    const normalizedUrl = normalizeUrl(url);
     
     let sql = 'SELECT * FROM heatmap_events WHERE url = ?';
-    let params = [url];
+    let params = [normalizedUrl];
     
     if (startDate && endDate) {
       sql += ' AND created_at BETWEEN ? AND ?';

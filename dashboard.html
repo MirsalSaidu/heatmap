@@ -553,7 +553,19 @@
         fetch('/api/heatmap/urls')
           .then(res => res.json())
           .then(urls => {
+            console.log('Available URLs:', urls);
             urlSelect.innerHTML = '';
+            
+            if (urls.length === 0) {
+              // Add a fallback option for testing
+              const option = document.createElement('option');
+              option.value = window.location.origin;
+              option.textContent = 'Dashboard URL (test)';
+              urlSelect.appendChild(option);
+              document.getElementById('pagesTracked').textContent = '0';
+              return;
+            }
+            
             urls.forEach(url => {
               const option = document.createElement('option');
               option.value = url;
@@ -561,10 +573,14 @@
               urlSelect.appendChild(option);
             });
             
+            document.getElementById('pagesTracked').textContent = urls.length;
             if (urls.length > 0) {
               loadHeatmapData(urls[0]);
-              document.getElementById('pagesTracked').textContent = urls.length;
             }
+          })
+          .catch(err => {
+            console.error('Error loading URLs:', err);
+            alert('Error loading URLs: ' + err.message);
           });
       }
       
