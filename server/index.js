@@ -1,62 +1,68 @@
 const express = require('express');
-const db = require('./db');
-const heatmapApi = require('./api');
-const path = require('path');
 const cors = require('cors');
+const path = require('path');
+const apiRoutes = require('./api');
+const { router: authRoutes } = require('./auth');
+const db = require('./db');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Allow requests from any origin
+// Middleware
 app.use(cors({
   origin: '*',
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'x-auth-token']
 }));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../public')));
 
-// Set CORS headers for all responses including static files
+// Set headers for CORS
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-auth-token');
   next();
 });
 
-app.use(express.json());
-app.use('/src', (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  express.static(path.join(__dirname, '../src'))(req, res, next);
+// Auth routes
+app.use('/api/auth', authRoutes);
+
+// API routes
+app.use('/', apiRoutes);
+
+// Serve static assets
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, '../login.html'));
 });
 
-// For other static files
-app.use('/', (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  express.static(path.join(__dirname, '..'))(req, res, next);
+app.get('/register', (req, res) => {
+  res.sendFile(path.join(__dirname, '../register.html'));
 });
 
-app.use(heatmapApi);
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../admin.html'));
+});
 
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, '../dashboard.html'));
 });
 
-// Add this specific route for heatmap.js
-app.get('/heatmap.js', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.sendFile(path.join(__dirname, '../src/heatmap.js'));
+// Main route - redirect to dashboard
+app.get('/', (req, res) => {
+  res.redirect('/dashboard');
 });
 
-// For local development
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
+// Start server
+app.listen(PORT, async () => {
+  try {
+    // Test database connection
+    await db.query('SELECT 1');
     console.log(`Server running on port ${PORT}`);
-  });
-}
+    console.log('Connected to database');
+  } catch (err) {
+    console.error('Database connection failed:', err);
+  }
+});
 
 // Export for Vercel
 module.exports = app; 

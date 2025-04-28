@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HeatmapiQ - Admin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --primary: #4361ee;
+      --secondary: #3f37c9;
+      --success: #4cc9f0;
+      --info: #4895ef;
+      --warning: #f72585;
+      --danger: #e63946;
+      --light: #f8f9fa;
+      --dark: #212529;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f5f7ff;
+    }
+    
+    .sidebar {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 250px;
+      padding: 1.5rem 1rem;
+      background-color: white;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+      z-index: 100;
+    }
+    
+    .main-content {
+      margin-left: 250px;
+      padding: 2rem;
+    }
+    
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .nav-link {
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      transition: all 0.2s;
+      color: #555;
+    }
+    
+    .nav-link:hover, .nav-link.active {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    .nav-link i {
+      margin-right: 0.75rem;
+    }
+    
+    .card {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    }
+    
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+    
+    .tab-content {
+      padding: 1.5rem;
+    }
+    
+    .form-control, .form-select {
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+    }
+    
+    .btn-primary {
+      background-color: var(--primary);
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="logo">
+      <i class="bi bi-warmth"></i>
+      <span>HeatmapiQ</span>
+    </div>
+    
+    <div class="nav flex-column">
+      <a href="#dashboard" class="nav-link active" data-bs-toggle="tab">
+        <i class="bi bi-speedometer2"></i> Dashboard
+      </a>
+      <a href="#users" class="nav-link" data-bs-toggle="tab">
+        <i class="bi bi-people"></i> Users
+      </a>
+      <a href="#websites" class="nav-link" data-bs-toggle="tab">
+        <i class="bi bi-globe"></i> Websites
+      </a>
+      <a href="#settings" class="nav-link" data-bs-toggle="tab">
+        <i class="bi bi-gear"></i> Settings
+      </a>
+      <a href="/dashboard" class="nav-link">
+        <i class="bi bi-graph-up"></i> Analytics
+      </a>
+    </div>
+    
+    <div class="mt-auto pt-5">
+      <div class="nav-link" id="logout-btn" style="cursor: pointer;">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </div>
+    </div>
+  </div>
+  
+  <div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2>Admin Dashboard</h2>
+      <div class="d-flex align-items-center">
+        <div class="user-avatar me-2" id="user-initials"></div>
+        <div>
+          <div class="fw-bold" id="user-name">Admin</div>
+          <div class="small text-muted" id="user-email">admin@example.com</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tab-content">
+      <!-- Dashboard Tab -->
+      <div class="tab-pane fade show active" id="dashboard">
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="card p-4">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="text-muted mb-1">Total Users</h6>
+                  <h2 id="total-users">0</h2>
+                </div>
+                <div class="h1 text-primary">
+                  <i class="bi bi-people"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-4">
+            <div class="card p-4">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="text-muted mb-1">Tracked Websites</h6>
+                  <h2 id="total-websites">0</h2>
+                </div>
+                <div class="h1 text-info">
+                  <i class="bi bi-globe"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-4">
+            <div class="card p-4">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="text-muted mb-1">Total Clicks</h6>
+                  <h2 id="total-clicks">0</h2>
+                </div>
+                <div class="h1 text-success">
+                  <i class="bi bi-mouse"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="card p-4">
+              <h5>Recent Activity</h5>
+              <div class="table-responsive mt-3">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Website</th>
+                      <th>Action</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody id="activity-table">
+                    <tr>
+                      <td colspan="4" class="text-center">No activity yet</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Users Tab -->
+      <div class="tab-pane fade" id="users">
+        <div class="card">
+          <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">User Management</h5>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+              <i class="bi bi-plus"></i> Add User
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table">
+                  <tr>
+                    <td colspan="5" class="text-center">Loading users...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Websites Tab -->
+      <div class="tab-pane fade" id="websites">
+        <div class="card">
+          <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Website Management</h5>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addWebsiteModal">
+              <i class="bi bi-plus"></i> Add Website
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Website URL</th>
+                    <th>Owner</th>
+                    <th>Tracked Pages</th>
+                    <th>Total Clicks</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="websites-table">
+                  <tr>
+                    <td colspan="5" class="text-center">Loading websites...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Settings Tab -->
+      <div class="tab-pane fade" id="settings">
+        <div class="card">
+          <div class="card-header bg-white py-3">
+            <h5 class="mb-0">System Settings</h5>
+          </div>
+          <div class="card-body">
+            <form id="settings-form">
+              <div class="mb-3">
+                <label class="form-label">Data Retention Period</label>
+                <select class="form-select" id="data-retention">
+                  <option value="30">30 days</option>
+                  <option value="90">90 days</option>
+                  <option value="180">180 days</option>
+                  <option value="365">1 year</option>
+                  <option value="0">Forever</option>
+                </select>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Sample Rate</label>
+                <div class="d-flex align-items-center">
+                  <input type="range" class="form-range" min="0.1" max="1" step="0.1" value="1" id="sample-rate">
+                  <span class="ms-2" id="sample-rate-value">100%</span>
+                </div>
+                <div class="form-text">Percentage of clicks to record (lower values reduce database usage)</div>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Default Heatmap Settings</label>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Radius</label>
+                    <input type="number" class="form-control" id="default-radius" value="25">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Opacity</label>
+                    <input type="number" class="form-control" id="default-opacity" value="0.6" step="0.1" min="0.1" max="1">
+                  </div>
+                </div>
+              </div>
+              
+              <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="require-approval">
+                <label class="form-check-label" for="require-approval">Require admin approval for new user registrations</label>
+              </div>
+              
+              <button type="submit" class="btn btn-primary">Save Settings</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Add User Modal -->
+  <div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add New User</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="add-user-form">
+            <div class="mb-3">
+              <label class="form-label">First Name</label>
+              <input type="text" class="form-control" id="new-user-firstname" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Last Name</label>
+              <input type="text" class="form-control" id="new-user-lastname" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" id="new-user-email" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Password</label>
+              <input type="password" class="form-control" id="new-user-password" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Role</label>
+              <select class="form-select" id="new-user-role">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="add-user-btn">Add User</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Add Website Modal -->
+  <div class="modal fade" id="addWebsiteModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add New Website</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="add-website-form">
+            <div class="mb-3">
+              <label class="form-label">Website URL</label>
+              <input type="url" class="form-control" id="new-website-url" placeholder="https://example.com" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Owner</label>
+              <select class="form-select" id="new-website-owner"></select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="add-website-btn">Add Website</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Check authentication
+    document.addEventListener('DOMContentLoaded', function() {
+      const token = localStorage.getItem('authToken');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      if (!token || !user || user.role !== 'admin') {
+        window.location.href = '/login';
+        return;
+      }
+      
+      // Set user info
+      document.getElementById('user-name').textContent = `${user.firstName} ${user.lastName}`;
+      document.getElementById('user-email').textContent = user.email;
+      document.getElementById('user-initials').textContent = `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+      
+      // Load data
+      loadDashboardData();
+      
+      // Setup logout
+      document.getElementById('logout-btn').addEventListener('click', function() {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      });
+      
+      // Setup forms
+      setupSettingsForm();
+      setupUserForm();
+      setupWebsiteForm();
+    });
+    
+    function loadDashboardData() {
+      const token = localStorage.getItem('authToken');
+      
+      // For demo, we'll simulate data loading
+      // In a real app, you'd fetch this from your API
+      setTimeout(() => {
+        document.getElementById('total-users').textContent = '12';
+        document.getElementById('total-websites').textContent = '5';
+        document.getElementById('total-clicks').textContent = '2,483';
+        
+        // Sample activity data
+        const activities = [
+          { user: 'John Doe', website: 'example.com', action: 'New registration', date: '2023-06-15' },
+          { user: 'Jane Smith', website: 'acme.org', action: 'Added tracking script', date: '2023-06-14' },
+          { user: 'Mike Johnson', website: 'testsite.com', action: 'Viewed analytics', date: '2023-06-13' }
+        ];
+        
+        const activityTable = document.getElementById('activity-table');
+        activityTable.innerHTML = '';
+        
+        activities.forEach(activity => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${activity.user}</td>
+            <td>${activity.website}</td>
+            <td>${activity.action}</td>
+            <td>${activity.date}</td>
+          `;
+          activityTable.appendChild(row);
+        });
+        
+        // Sample users data
+        const users = [
+          { id: 1, name: 'John Doe', email: 'john@example.com', role: 'admin', status: 'active' },
+          { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'user', status: 'active' },
+          { id: 3, name: 'Mike Johnson', email: 'mike@example.com', role: 'user', status: 'inactive' }
+        ];
+        
+        const usersTable = document.getElementById('users-table');
+        usersTable.innerHTML = '';
+        
+        users.forEach(user => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${user.name}</td>
+            <td>${user.email}</td>
+            <td><span class="badge bg-${user.role === 'admin' ? 'primary' : 'secondary'}">${user.role}</span></td>
+            <td><span class="badge bg-${user.status === 'active' ? 'success' : 'warning'}">${user.status}</span></td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary me-1"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </td>
+          `;
+          usersTable.appendChild(row);
+        });
+        
+        // Sample websites data
+        const websites = [
+          { id: 1, url: 'example.com', owner: 'John Doe', pages: 12, clicks: 1245 },
+          { id: 2, url: 'acme.org', owner: 'Jane Smith', pages: 5, clicks: 864 },
+          { id: 3, url: 'testsite.com', owner: 'Mike Johnson', pages: 3, clicks: 374 }
+        ];
+        
+        const websitesTable = document.getElementById('websites-table');
+        websitesTable.innerHTML = '';
+        
+        websites.forEach(site => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${site.url}</td>
+            <td>${site.owner}</td>
+            <td>${site.pages}</td>
+            <td>${site.clicks}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary me-1"><i class="bi bi-eye"></i></button>
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </td>
+          `;
+          websitesTable.appendChild(row);
+        });
+        
+        // Populate user dropdown in website form
+        const ownerSelect = document.getElementById('new-website-owner');
+        ownerSelect.innerHTML = '';
+        users.forEach(user => {
+          const option = document.createElement('option');
+          option.value = user.id;
+          option.textContent = user.name;
+          ownerSelect.appendChild(option);
+        });
+      }, 500);
+    }
+    
+    function setupSettingsForm() {
+      const sampleRateInput = document.getElementById('sample-rate');
+      const sampleRateValue = document.getElementById('sample-rate-value');
+      
+      sampleRateInput.addEventListener('input', function() {
+        sampleRateValue.textContent = `${Math.round(this.value * 100)}%`;
+      });
+      
+      document.getElementById('settings-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // In a real app, you'd send this to your API
+        const settings = {
+          dataRetention: document.getElementById('data-retention').value,
+          sampleRate: document.getElementById('sample-rate').value,
+          defaultRadius: document.getElementById('default-radius').value,
+          defaultOpacity: document.getElementById('default-opacity').value,
+          requireApproval: document.getElementById('require-approval').checked
+        };
+        
+        console.log('Saving settings:', settings);
+        
+        // Show success message
+        alert('Settings saved successfully!');
+      });
+    }
+    
+    function setupUserForm() {
+      document.getElementById('add-user-btn').addEventListener('click', function() {
+        const userData = {
+          firstName: document.getElementById('new-user-firstname').value,
+          lastName: document.getElementById('new-user-lastname').value,
+          email: document.getElementById('new-user-email').value,
+          password: document.getElementById('new-user-password').value,
+          role: document.getElementById('new-user-role').value
+        };
+        
+        // In a real app, you'd send this to your API
+        console.log('Adding user:', userData);
+        
+        // Close modal and refresh data
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+        modal.hide();
+        
+        // Clear form
+        document.getElementById('add-user-form').reset();
+        
+        // Show success message
+        alert('User added successfully!');
+        
+        // Refresh data
+        loadDashboardData();
+      });
+    }
+    
+    function setupWebsiteForm() {
+      document.getElementById('add-website-btn').addEventListener('click', function() {
+        const websiteData = {
+          url: document.getElementById('new-website-url').value,
+          ownerId: document.getElementById('new-website-owner').value
+        };
+        
+        // In a real app, you'd send this to your API
+        console.log('Adding website:', websiteData);
+        
+        // Close modal and refresh data
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addWebsiteModal'));
+        modal.hide();
+        
+        // Clear form
+        document.getElementById('add-website-form').reset();
+        
+        // Show success message
+        alert('Website added successfully!');
+        
+        // Refresh data
+        loadDashboardData();
+      });
+    }
+  </script>
+</body>
+</html> 
