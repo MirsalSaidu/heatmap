@@ -3,22 +3,16 @@
   "builds": [
     { "src": "server/index.js", "use": "@vercel/node" },
     { "src": "*.html", "use": "@vercel/static" },
-    { "src": "public/**", "use": "@vercel/static" },
-    { "src": "*.js", "use": "@vercel/static" }
+    { "src": "*.js", "use": "@vercel/static" },
+    { "src": "src/**", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "server/index.js" },
     { "src": "/login", "dest": "/login.html" },
     { "src": "/register", "dest": "/register.html" },
-    { 
-      "src": "/dashboard", 
-      "dest": "server/index.js" 
-    },
-    { 
-      "src": "/admin", 
-      "dest": "server/index.js" 
-    },
-    { "src": "/heatmapViewer.js", "dest": "/public/heatmapViewer.js" },
+    { "src": "/dashboard", "dest": "server/index.js" },
+    { "src": "/admin", "dest": "server/index.js" },
+    { "src": "/heatmapViewer.js", "dest": "/heatmapViewer.js" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/server/index.js" }
   ]
