@@ -966,77 +966,53 @@
   </script>
   
   <script>
-    document.getElementById('copy-code-btn').addEventListener('click', function() {
-      const codeElement = document.getElementById('tracking-code');
-      const textArea = document.createElement('textarea');
-      textArea.value = codeElement.textContent;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      
-      // Change button text temporarily
-      const originalText = this.innerHTML;
-      this.innerHTML = '<i class="bi bi-check-lg me-1"></i> Copied!';
-      this.classList.remove('btn-primary');
-      this.classList.add('btn-success');
-      
-      setTimeout(() => {
-        this.innerHTML = originalText;
-        this.classList.remove('btn-success');
-        this.classList.add('btn-primary');
-      }, 2000);
-    });
-  </script>
-  
-  <script>
-    // Show the Add URL modal
-    document.getElementById('add-url-btn').addEventListener('click', function() {
-      new bootstrap.Modal(document.getElementById('addUrlModal')).show();
-    });
-
-    function isValidUrl(url) {
-      try {
-        const u = new URL(url);
-        // Accepts any valid http(s) URL, including subdomains
-        return u.protocol === "http:" || u.protocol === "https:";
-      } catch (e) {
-        return false;
-      }
-    }
-
-    // Handle Add URL form submission
-    document.getElementById('add-url-form').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const url = document.getElementById('new-url').value.trim();
-
-      if (!isValidUrl(url)) {
-        alert('Please enter a valid URL including http:// or https://');
-        return;
-      }
-
-      fetch('/api/websites', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': localStorage.getItem('authToken')
-        },
-        body: JSON.stringify({ url })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          showTrackingCode(url);
-          bootstrap.Modal.getInstance(document.getElementById('addUrlModal')).hide();
-        } else {
-          alert(data.message || 'Failed to add URL');
-        }
+    document.addEventListener('DOMContentLoaded', function() {
+      // Show the Add URL modal
+      document.getElementById('add-url-btn').addEventListener('click', function() {
+        new bootstrap.Modal(document.getElementById('addUrlModal')).show();
       });
-    });
 
-    // Show the tracking code modal
-    function showTrackingCode(url) {
-      const code = `<script type="module">
+      function isValidUrl(url) {
+        try {
+          const u = new URL(url);
+          return u.protocol === "http:" || u.protocol === "https:";
+        } catch (e) {
+          return false;
+        }
+      }
+
+      // Handle Add URL form submission
+      document.getElementById('add-url-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const url = document.getElementById('new-url').value.trim();
+
+        if (!isValidUrl(url)) {
+          alert('Please enter a valid URL including http:// or https://');
+          return;
+        }
+
+        fetch('/api/websites', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': localStorage.getItem('authToken')
+          },
+          body: JSON.stringify({ url })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showTrackingCode(url);
+            bootstrap.Modal.getInstance(document.getElementById('addUrlModal')).hide();
+          } else {
+            alert(data.message || 'Failed to add URL');
+          }
+        });
+      });
+
+      // Show the tracking code modal
+      function showTrackingCode(url) {
+        const code = `<script type="module">
   import Heatmap from 'https://heatmap-beige.vercel.app/heatmap.js';
   const heatmap = new Heatmap({
     endpoint: 'https://heatmap-beige.vercel.app/api/heatmap',
@@ -1060,17 +1036,18 @@
     document.head.appendChild(script);
   }
 <\/script>`;
-      document.getElementById('tracking-url').textContent = url;
-      document.getElementById('tracking-code').textContent = code;
-      new bootstrap.Modal(document.getElementById('trackingCodeModal')).show();
-    }
+        document.getElementById('tracking-url').textContent = url;
+        document.getElementById('tracking-code').textContent = code;
+        new bootstrap.Modal(document.getElementById('trackingCodeModal')).show();
+      }
 
-    // Copy tracking code to clipboard
-    document.getElementById('copy-tracking-code').addEventListener('click', function() {
-      const code = document.getElementById('tracking-code').textContent;
-      navigator.clipboard.writeText(code);
-      this.textContent = 'Copied!';
-      setTimeout(() => { this.textContent = 'Copy Code'; }, 2000);
+      // Copy tracking code to clipboard
+      document.getElementById('copy-tracking-code').addEventListener('click', function() {
+        const code = document.getElementById('tracking-code').textContent;
+        navigator.clipboard.writeText(code);
+        this.textContent = 'Copied!';
+        setTimeout(() => { this.textContent = 'Copy Code'; }, 2000);
+      });
     });
   </script>
 </body>
