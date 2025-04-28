@@ -19,8 +19,25 @@ class HeatmapViewer {
 
   async loadScreenshot(url) {
     try {
-      // For serverless environments, use a placeholder instead
-      return null;
+      // Try to fetch screenshot from API
+      const screenshotUrl = `/api/screenshot?url=${encodeURIComponent(url)}`;
+      const response = await fetch(screenshotUrl);
+      
+      if (response.ok) {
+        const contentType = response.headers.get('content-type');
+        
+        // Check if response is JSON (our error message) or an actual image
+        if (contentType && contentType.includes('application/json')) {
+          console.log('Screenshot API returned JSON response - no screenshot available');
+          return null;
+        }
+        
+        // If we got an actual image blob
+        return await response.blob();
+      } else {
+        console.warn('Failed to load screenshot, using placeholder');
+        return null;
+      }
     } catch (error) {
       console.error('Error loading screenshot:', error);
       return null;
@@ -49,6 +66,7 @@ class HeatmapViewer {
     // Create placeholder for website background
     if (this.options.showBackground && this.data.length > 0) {
       const url = this.data[0].url;
+      const hostname = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
       
       // Create placeholder with URL info
       const placeholder = document.createElement('div');
@@ -62,22 +80,33 @@ class HeatmapViewer {
       placeholder.style.color = '#555';
       placeholder.style.textAlign = 'center';
       placeholder.style.padding = '20px';
+      placeholder.style.position = 'relative';
+      placeholder.style.boxSizing = 'border-box';
+      placeholder.style.border = '1px solid #ddd';
+      placeholder.style.borderRadius = '8px';
+      
       placeholder.innerHTML = `
-        <div style="font-size: 1.2rem; margin-bottom: 10px;">Website: ${url}</div>
-        <div style="font-style: italic; margin-bottom: 20px;">Heatmap overlay for captured clicks</div>
-        <div style="color: #888; font-size: 0.9rem;">Screenshots are not available in this environment</div>
+        <div style="font-size: 1.5rem; margin-bottom: 15px; font-weight: bold;">${hostname}</div>
+        <div style="font-size: 1.1rem; margin-bottom: 20px; max-width: 80%;">
+          <span style="opacity: 0.7;">${url}</span>
+        </div>
+        <div style="position: relative; width: 100%; height: 60%; border-top: 1px dashed #ccc; margin-top: 20px; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; top: 10px; left: 10px; font-size: 0.8rem; color: #777;">Click Heatmap Overlay</div>
+          <div style="font-style: italic; color: #888;">Click data will be displayed here</div>
+        </div>
       `;
       wrapper.appendChild(placeholder);
     }
     
     // Create canvas for heatmap
     const canvas = document.createElement('canvas');
-    canvas.style.position = this.options.showBackground ? 'absolute' : 'relative';
+    canvas.style.position = 'absolute';  // Always absolute to overlay properly
     canvas.style.top = '0';
     canvas.style.left = '0';
     canvas.style.width = '100%';
     canvas.style.height = '100%';
     canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '10';  // Make sure it's above the placeholder
     wrapper.appendChild(canvas);
     
     // Get dimensions
@@ -93,19 +122,48 @@ class HeatmapViewer {
     ctx.clearRect(0, 0, width, height);
     
     // Draw heatmap points
-    this.data.forEach(point => {
-      const x = (point.x / (point.viewport_width || 1000)) * width;
-      const y = (point.y / (point.viewport_height || 800)) * height;
+    if (this.data.length > 0) {
+      // Find the maximum viewport dimensions to normalize points
+      const maxViewportWidth = Math.max(...this.data.map(d => d.viewport_width || 1000));
+      const maxViewportHeight = Math.max(...this.data.map(d => d.viewport_height || 800));
       
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, this.options.radius);
-      gradient.addColorStop(0, `rgba(255, 0, 0, ${this.options.maxOpacity})`);
-      gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-      
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(x, y, this.options.radius, 0, 2 * Math.PI);
-      ctx.fill();
-    });
+      this.data.forEach(point => {
+        // Handle missing viewport dimensions
+        const viewportWidth = point.viewport_width || maxViewportWidth || 1000;
+        const viewportHeight = point.viewport_height || maxViewportHeight || 800;
+        
+        // Calculate position
+        const x = (point.x / viewportWidth) * width;
+        const y = (point.y / viewportHeight) * height;
+        
+        // Create heat point
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, this.options.radius);
+        gradient.addColorStop(0, `rgba(255, 0, 0, ${this.options.maxOpacity})`);
+        gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, this.options.radius, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    } else {
+      // Display a message when no data is available
+      const noDataMsg = document.createElement('div');
+      noDataMsg.style.width = '100%';
+      noDataMsg.style.height = '400px';
+      noDataMsg.style.display = 'flex';
+      noDataMsg.style.alignItems = 'center';
+      noDataMsg.style.justifyContent = 'center';
+      noDataMsg.style.color = '#777';
+      noDataMsg.style.fontSize = '1.2rem';
+      noDataMsg.style.fontStyle = 'italic';
+      noDataMsg.style.backgroundColor = '#f9f9f9';
+      noDataMsg.style.border = '1px solid #eee';
+      noDataMsg.style.borderRadius = '8px';
+      noDataMsg.textContent = 'No click data available for the selected criteria';
+      wrapper.appendChild(noDataMsg);
+      return;
+    }
   }
 }
 

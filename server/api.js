@@ -188,10 +188,10 @@ router.get('/api/screenshot', async (req, res) => {
     return res.status(400).json({ error: 'URL is required' });
   }
   
-  // Instead of using Puppeteer, return a simple message
+  // Return a JSON response instead of attempting to use Puppeteer
   res.json({ 
     success: false, 
-    message: 'Cannot capture screenshots in serverless environment',
+    message: 'Screenshots are not available in serverless environment',
     url: url 
   });
 });
