@@ -152,6 +152,57 @@
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
       }
     }
+    
+    .toggle-container {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 30px;
+    }
+    
+    .toggle-container input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 30px;
+    }
+    
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .toggle-slider {
+      background-color: var(--primary);
+    }
+    
+    input:checked + .toggle-slider:before {
+      transform: translateX(30px);
+    }
+    
+    .toggle-label {
+      margin-left: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
   </style>
 </head>
 <body>
@@ -314,6 +365,11 @@
       loadVisitorStats();
       
       function loadVisitorStats() {
+        // Show loading state
+        document.getElementById('uniqueVisitors').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        document.getElementById('avgTimeOnPage').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        document.getElementById('mobileTraffic').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        
         fetch('/api/visitors')
           .then(res => {
             if (!res.ok) {
@@ -336,6 +392,10 @@
                 </td>
               </tr>
             `;
+            // Reset stat cards on error
+            document.getElementById('uniqueVisitors').textContent = '0';
+            document.getElementById('avgTimeOnPage').textContent = '0:00';
+            document.getElementById('mobileTraffic').textContent = '0%';
           });
       }
       
@@ -355,53 +415,69 @@
       }
       
       function updateVisitorCharts(data) {
-        // Browser chart
-        new Chart(document.getElementById('browserChart'), {
-          type: 'pie',
-          data: {
-            labels: data.browsers ? data.browsers.map(b => b.name) : ['No Data'],
-            datasets: [{
-              data: data.browsers ? data.browsers.map(b => b.count) : [1],
-              backgroundColor: [
-                '#4361ee', '#3a0ca3', '#4895ef', '#4cc9f0', '#f72585',
-                '#7209b7', '#3f37c9', '#4361ee', '#4895ef', '#4cc9f0'
-              ]
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                position: 'right',
+        try {
+          // Browser chart
+          const browserCtx = document.getElementById('browserChart');
+          if (!browserCtx) {
+            console.error('Browser chart canvas not found');
+            return;
+          }
+          
+          new Chart(browserCtx, {
+            type: 'pie',
+            data: {
+              labels: data.browsers ? data.browsers.map(b => b.name || 'Unknown') : ['No Data'],
+              datasets: [{
+                data: data.browsers ? data.browsers.map(b => b.count) : [1],
+                backgroundColor: [
+                  '#4361ee', '#3a0ca3', '#4895ef', '#4cc9f0', '#f72585',
+                  '#7209b7', '#3f37c9', '#4361ee', '#4895ef', '#4cc9f0'
+                ]
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: 'right',
+                }
               }
             }
+          });
+          
+          // Device type chart
+          const deviceCtx = document.getElementById('deviceChart');
+          if (!deviceCtx) {
+            console.error('Device chart canvas not found');
+            return;
           }
-        });
-        
-        // Device type chart
-        const deviceTypes = data.deviceTypes || { desktop: 0, mobile: 0, tablet: 0 };
-        new Chart(document.getElementById('deviceChart'), {
-          type: 'doughnut',
-          data: {
-            labels: ['Desktop', 'Mobile', 'Tablet'],
-            datasets: [{
-              data: [
-                deviceTypes.desktop || 0,
-                deviceTypes.mobile || 0,
-                deviceTypes.tablet || 0
-              ],
-              backgroundColor: ['#4361ee', '#f72585', '#4cc9f0']
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                position: 'right',
+          
+          const deviceTypes = data.deviceTypes || { desktop: 0, mobile: 0, tablet: 0 };
+          new Chart(deviceCtx, {
+            type: 'doughnut',
+            data: {
+              labels: ['Desktop', 'Mobile', 'Tablet'],
+              datasets: [{
+                data: [
+                  deviceTypes.desktop || 0,
+                  deviceTypes.mobile || 0,
+                  deviceTypes.tablet || 0
+                ],
+                backgroundColor: ['#4361ee', '#f72585', '#4cc9f0']
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: 'right',
+                }
               }
             }
-          }
-        });
+          });
+        } catch (err) {
+          console.error('Error creating charts:', err);
+        }
       }
       
       function populateVisitorTable(visitors) {
