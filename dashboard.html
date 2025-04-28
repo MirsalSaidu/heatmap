@@ -601,24 +601,33 @@
       initChart();
       
       function loadUrls() {
+        // Create fallback data
+        const fallbackData = [window.location.origin];
+        
         fetch('/api/heatmap/urls')
           .then(res => {
             if (!res.ok) {
-              throw new Error(`HTTP error! Status: ${res.status}`);
+              console.warn('API endpoint not responding, using fallback data');
+              return { json: () => fallbackData };
             }
-            return res.json();
+            return res;
           })
+          .then(res => res.json())
           .then(urls => {
             console.log('Available URLs:', urls);
             urlSelect.innerHTML = '';
             
             if (!urls || urls.length === 0) {
-              // Add a fallback option for testing
-              const option = document.createElement('option');
-              option.value = window.location.origin;
-              option.textContent = 'Dashboard URL (test)';
-              urlSelect.appendChild(option);
-              document.getElementById('pagesTracked').textContent = '0';
+              // Use fallback data
+              const urls = fallbackData;
+              urlSelect.innerHTML = '';
+              urls.forEach(url => {
+                const option = document.createElement('option');
+                option.value = url;
+                option.textContent = url;
+                urlSelect.appendChild(option);
+              });
+              document.getElementById('pagesTracked').textContent = urls.length;
               return;
             }
             
@@ -636,13 +645,16 @@
           })
           .catch(err => {
             console.error('Error loading URLs:', err);
-            // Fallback to show something meaningful
+            // Use fallback data
+            const urls = fallbackData;
             urlSelect.innerHTML = '';
-            const option = document.createElement('option');
-            option.value = window.location.origin;
-            option.textContent = 'Current URL (fallback)';
-            urlSelect.appendChild(option);
-            document.getElementById('pagesTracked').textContent = '0';
+            urls.forEach(url => {
+              const option = document.createElement('option');
+              option.value = url;
+              option.textContent = url;
+              urlSelect.appendChild(option);
+            });
+            document.getElementById('pagesTracked').textContent = urls.length;
           });
       }
       
