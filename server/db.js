@@ -5,6 +5,12 @@ let pool = null;
 async function connect() {
   if (pool) return pool;
   
+  console.log("Connecting to MySQL with:", {
+    host: process.env.DB_HOST || 'default-host',
+    user: process.env.DB_USER || 'default-user',
+    database: process.env.DB_NAME || 'default-db'
+  });
+  
   pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
