@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const apiRoutes = require('./api');
-const { router: authRoutes } = require('./auth');
+const { router: authRoutes, auth, admin } = require('./auth');
 const db = require('./db');
 
 const app = express();
@@ -27,10 +27,10 @@ app.use((req, res, next) => {
 // Auth routes
 app.use('/api/auth', authRoutes);
 
-// API routes
-app.use('/', apiRoutes);
+// API routes - protected and unprotected
+app.use('/api/heatmap', apiRoutes);
 
-// Serve static assets
+// Public routes - accessible without login
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, '../login.html'));
 });
@@ -39,18 +39,67 @@ app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, '../register.html'));
 });
 
+// Protected routes - require authentication
+const serveWithAuthCheck = (req, res, filePath, adminRequired = false) => {
+  const token = req.header('x-auth-token') || req.cookies?.authToken;
+  
+  if (!token) {
+    return res.redirect('/login');
+  }
+  
+  try {
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+    
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    if (adminRequired && decoded.user.role !== 'admin') {
+      return res.redirect('/dashboard');
+    }
+    
+    res.sendFile(path.join(__dirname, filePath));
+  } catch (err) {
+    return res.redirect('/login');
+  }
+};
+
+// Admin route - requires admin role
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, '../admin.html'));
+  serveWithAuthCheck(req, res, '../admin.html', true);
 });
 
+// Dashboard route - requires authentication
 app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dashboard.html'));
+  serveWithAuthCheck(req, res, '../dashboard.html');
 });
 
-// Main route - redirect to dashboard
+// Main route - check auth and redirect accordingly
 app.get('/', (req, res) => {
-  res.redirect('/dashboard');
+  const token = req.header('x-auth-token') || req.cookies?.authToken;
+  
+  if (!token) {
+    return res.redirect('/login');
+  }
+  
+  try {
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+    
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    if (decoded.user.role === 'admin') {
+      return res.redirect('/admin');
+    } else {
+      return res.redirect('/dashboard');
+    }
+  } catch (err) {
+    return res.redirect('/login');
+  }
 });
+
+// Install cookie parser for better session handling
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 
 // Start server
 app.listen(PORT, async () => {

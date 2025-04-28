@@ -57,7 +57,7 @@ router.post('/register', async (req, res) => {
 // Login user
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
     
     // Validate input
     if (!email || !password) {
@@ -94,8 +94,11 @@ router.post('/login', async (req, res) => {
       }
     };
     
+    // Determine token expiration based on rememberMe
+    const expiresIn = rememberMe ? '30d' : JWT_EXPIRES;
+    
     // Sign token
-    jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES }, (err, token) => {
+    jwt.sign(payload, JWT_SECRET, { expiresIn }, (err, token) => {
       if (err) throw err;
       
       // Return user info (excluding password)
@@ -106,6 +109,22 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role
       };
+      
+      // Set cookie for server-side auth if using cookies
+      if (rememberMe) {
+        res.cookie('authToken', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+          sameSite: 'strict'
+        });
+      } else {
+        res.cookie('authToken', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict'
+        });
+      }
       
       res.json({
         success: true,
@@ -173,6 +192,18 @@ router.get('/me', auth, async (req, res) => {
     console.error('Get user error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
+});
+
+// Add a logout route
+router.get('/logout', (req, res) => {
+  // Clear cookie
+  res.clearCookie('authToken');
+  
+  // Send success response
+  res.json({
+    success: true,
+    message: 'Logged out successfully'
+  });
 });
 
 module.exports = { router, auth, admin }; 

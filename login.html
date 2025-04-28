@@ -108,19 +108,30 @@
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       const errorAlert = document.getElementById('error-alert');
+      const rememberMe = document.getElementById('remember').checked;
       
       fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, rememberMe })
       })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
+          // Store in localStorage for client-side checks
           localStorage.setItem('authToken', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
+          
+          // Set cookie for server-side auth
+          if (rememberMe) {
+            // Create persistent cookie that lasts 30 days
+            document.cookie = `authToken=${data.token}; path=/; max-age=2592000; SameSite=Strict`;
+          } else {
+            // Create session cookie (expires when browser is closed)
+            document.cookie = `authToken=${data.token}; path=/; SameSite=Strict`;
+          }
           
           // Redirect based on role
           if (data.user.role === 'admin') {
