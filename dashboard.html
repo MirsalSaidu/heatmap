@@ -456,37 +456,15 @@
           </div>
           <p class="text-muted mb-3">Add this code to your website to start tracking clicks:</p>
           <div class="bg-light p-3 rounded" style="position: relative;">
-            <pre class="mb-0"><code id="tracking-code">&lt;script type="module"&gt;
-  // Try ES module import first
-  import Heatmap from 'https://heatmap-beige.vercel.app/heatmap.js';
-  
+            <pre class="mb-0"><code id="tracking-code">&lt;script src="https://heatmap-beige.vercel.app/heatmap.js"&gt;&lt;/script&gt;
+&lt;script&gt;
   // Initialize the heatmap tracking
   const heatmap = new Heatmap({
     endpoint: 'https://heatmap-beige.vercel.app/api/heatmap',
     sampleRate: 1.0 // Capture all clicks (1.0 = 100%)
   });
   
-  console.log('Heatmap tracking initialized with ES modules');
-&lt;/script&gt;
-
-&lt;!-- Fallback for non-module support --&gt;
-&lt;script&gt;
-  // Only execute if Heatmap is not already defined (module failed)
-  if (typeof window.Heatmap === 'undefined') {
-    // Load the script
-    const script = document.createElement('script');
-    script.src = 'https://heatmap-beige.vercel.app/heatmap.js';
-    script.onload = function() {
-      if (typeof window.Heatmap !== 'undefined') {
-        const heatmap = new window.Heatmap({
-          endpoint: 'https://heatmap-beige.vercel.app/api/heatmap',
-          sampleRate: 1.0
-        });
-        console.log('Heatmap tracking initialized with fallback script');
-      }
-    };
-    document.head.appendChild(script);
-  }
+  console.log('Heatmap tracking initialized');
 &lt;/script&gt;</code></pre>
           </div>
           <p class="mt-3 mb-0 text-muted">
@@ -1044,29 +1022,14 @@
 
       // Show the tracking code modal
       function showTrackingCode(url) {
-        const code = `<script type="module">
-  import Heatmap from 'https://heatmap-beige.vercel.app/heatmap.js';
+        const code = `<script src="https://heatmap-beige.vercel.app/heatmap.js"><\/script>
+<script>
+  // Initialize the heatmap tracking
   const heatmap = new Heatmap({
     endpoint: 'https://heatmap-beige.vercel.app/api/heatmap',
     url: '${url}',
     sampleRate: 1.0
   });
-<\/script>
-<script>
-  if (typeof window.Heatmap === 'undefined') {
-    const script = document.createElement('script');
-    script.src = 'https://heatmap-beige.vercel.app/heatmap.js';
-    script.onload = function() {
-      if (typeof window.Heatmap !== 'undefined') {
-        const heatmap = new window.Heatmap({
-          endpoint: 'https://heatmap-beige.vercel.app/api/heatmap',
-          url: '${url}',
-          sampleRate: 1.0
-        });
-      }
-    };
-    document.head.appendChild(script);
-  }
 <\/script>`;
         document.getElementById('tracking-url').textContent = url;
         document.getElementById('tracking-code').textContent = code;
