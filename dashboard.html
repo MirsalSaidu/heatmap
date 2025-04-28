@@ -602,12 +602,17 @@
       
       function loadUrls() {
         fetch('/api/heatmap/urls')
-          .then(res => res.json())
+          .then(res => {
+            if (!res.ok) {
+              throw new Error(`HTTP error! Status: ${res.status}`);
+            }
+            return res.json();
+          })
           .then(urls => {
             console.log('Available URLs:', urls);
             urlSelect.innerHTML = '';
             
-            if (urls.length === 0) {
+            if (!urls || urls.length === 0) {
               // Add a fallback option for testing
               const option = document.createElement('option');
               option.value = window.location.origin;
@@ -631,7 +636,13 @@
           })
           .catch(err => {
             console.error('Error loading URLs:', err);
-            alert('Error loading URLs: ' + err.message);
+            // Fallback to show something meaningful
+            urlSelect.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = window.location.origin;
+            option.textContent = 'Current URL (fallback)';
+            urlSelect.appendChild(option);
+            document.getElementById('pagesTracked').textContent = '0';
           });
       }
       

@@ -78,7 +78,7 @@ router.get('/api/heatmap', async (req, res) => {
   }
 });
 
-// Get list of URLs with heatmap data
+// Get list of URLs with heatmap data - remove auth requirement
 router.get('/api/heatmap/urls', async (req, res) => {
   try {
     const sql = 'SELECT DISTINCT url FROM heatmap_events';
