@@ -6,7 +6,15 @@
     { "src": "src/**", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "server/index.js" },
+    {
+      "src": "/(.*)",
+      "dest": "server/index.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      }
+    },
     { "src": "/dashboard", "dest": "dashboard.html" },
     { "src": "/", "dest": "dashboard.html" },
     { "src": "/(.*)", "dest": "/$1" }
