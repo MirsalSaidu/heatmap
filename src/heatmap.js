@@ -81,10 +81,17 @@ class Heatmap {
   }
 }
 
-// Make it available globally and as a module
+// Make it available globally
 if (typeof window !== 'undefined') {
   window.Heatmap = Heatmap;
 }
 
-// Add the module export
-export default Heatmap; 
+// Export for ES modules (remove this line or make it conditional)
+// export default Heatmap;
+
+// Use this pattern instead to support both module and non-module contexts
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = Heatmap;
+} else if (typeof define === 'function' && define.amd) {
+  define([], function() { return Heatmap; });
+} 

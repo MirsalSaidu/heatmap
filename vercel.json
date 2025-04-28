@@ -21,7 +21,13 @@
     { "src": "/dashboard", "dest": "/server/index.js" },
     { "src": "/admin", "dest": "/server/index.js" },
     { "src": "/heatmapViewer.js", "dest": "/heatmapViewer.js" },
-    { "src": "/heatmap.js", "dest": "/src/heatmap.js" },
+    { 
+      "src": "/heatmap.js", 
+      "dest": "/src/heatmap.js",
+      "headers": {
+        "Content-Type": "application/javascript"
+      }
+    },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/server/index.js" }
   ]
