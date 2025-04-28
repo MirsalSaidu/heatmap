@@ -290,8 +290,11 @@
     </div>
     
     <div class="nav flex-column">
-      <a href="#" class="nav-link active">
+      <a href="/" class="nav-link active">
         <i class="bi bi-house-fill"></i> Dashboard
+      </a>
+      <a href="/visitors.html" class="nav-link">
+        <i class="bi bi-people-fill"></i> Visitors
       </a>
       <a href="#" class="nav-link">
         <i class="bi bi-graph-up"></i> Analytics
@@ -463,13 +466,15 @@
           <div class="bg-light p-3 rounded" style="position: relative;">
             <pre class="mb-0"><code id="tracking-code">&lt;script src="https://heatmap-beige.vercel.app/heatmap.js"&gt;&lt;/script&gt;
 &lt;script&gt;
-  // Initialize the heatmap tracking
+  // Initialize the heatmap tracking with enhanced visitor tracking
   const heatmap = new Heatmap({
     endpoint: 'https://heatmap-beige.vercel.app/api/heatmap',
-    sampleRate: 1.0 // Capture all clicks (1.0 = 100%)
+    sampleRate: 1.0, // Capture all clicks (1.0 = 100%)
+    batchSize: 10,   // Send data every 10 clicks
+    batchInterval: 5000 // Or every 5 seconds, whichever comes first
   });
   
-  console.log('Heatmap tracking initialized');
+  console.log('Heatmap tracking initialized with visitor analytics');
 &lt;/script&gt;</code></pre>
           </div>
           <p class="mt-3 mb-0 text-muted">
@@ -1043,11 +1048,13 @@
       function showTrackingCode(url) {
         const code = `<script src="https://heatmap-beige.vercel.app/heatmap.js"><\/script>
 <script>
-  // Initialize the heatmap tracking
+  // Initialize the heatmap tracking with enhanced visitor tracking
   const heatmap = new Heatmap({
     endpoint: 'https://heatmap-beige.vercel.app/api/heatmap',
     url: '${url}',
-    sampleRate: 1.0
+    sampleRate: 1.0,
+    batchSize: 10,
+    batchInterval: 5000
   });
 <\/script>`;
         document.getElementById('tracking-url').textContent = url;

@@ -22,28 +22,37 @@ router.use((req, res, next) => {
 // Save heatmap data
 router.post('/api/heatmap', async (req, res) => {
   try {
-    const { events, url, userAgent } = req.body;
+    const { events, url, userAgent, userData } = req.body;
     const normalizedUrl = normalizeUrl(url);
     
-    // Prepare batch insert
-    const values = events.map(event => [
-      event.sessionId,
-      event.timestamp,
-      event.x,
-      event.y,
-      event.pageX,
-      event.pageY,
-      event.path,
-      normalizedUrl,
-      event.viewportWidth,
-      event.viewportHeight,
-      userAgent
-    ]);
+    // First, save or update the session data
+    const sessionId = events[0]?.sessionId;
+    if (sessionId && userData) {
+      await saveUserSession(sessionId, userData, normalizedUrl);
+    }
     
-    if (values.length > 0) {
+    // Then save the events
+    if (events && events.length > 0) {
+      const values = events.map(event => [
+        event.sessionId,
+        event.timestamp,
+        event.x,
+        event.y,
+        event.pageX,
+        event.pageY,
+        event.path,
+        normalizedUrl,
+        event.viewportWidth,
+        event.viewportHeight,
+        userAgent,
+        event.scrollX || 0,
+        event.scrollY || 0,
+        event.clickDetails ? JSON.stringify(event.clickDetails) : '{}'
+      ]);
+      
       const sql = `
         INSERT INTO heatmap_events 
-        (session_id, timestamp, x, y, page_x, page_y, path, url, viewport_width, viewport_height, user_agent)
+        (session_id, timestamp, x, y, page_x, page_y, path, url, viewport_width, viewport_height, user_agent, scroll_x, scroll_y, click_details)
         VALUES ?
       `;
       
@@ -56,6 +65,67 @@ router.post('/api/heatmap', async (req, res) => {
     res.status(500).json({ error: 'Failed to save heatmap data' });
   }
 });
+
+// Helper function to save user session information
+async function saveUserSession(sessionId, userData, url) {
+  try {
+    // Check if the session record already exists
+    const [existingSession] = await db.query(
+      'SELECT id FROM user_sessions WHERE session_id = ?',
+      [sessionId]
+    );
+    
+    if (existingSession.length === 0) {
+      // Create a new session record
+      const sessionData = {
+        session_id: sessionId,
+        browser_name: userData.browserInfo?.browserName || 'Unknown',
+        browser_version: userData.browserInfo?.browserVersion || 'Unknown',
+        os_name: userData.browserInfo?.osName || 'Unknown',
+        os_version: userData.browserInfo?.osVersion || 'Unknown',
+        is_mobile: userData.browserInfo?.isMobile ? 1 : 0,
+        screen_resolution: userData.deviceInfo?.screenWidth && userData.deviceInfo?.screenHeight ? 
+                          `${userData.deviceInfo.screenWidth}x${userData.deviceInfo.screenHeight}` : 'Unknown',
+        referrer: userData.referrer || '',
+        initial_url: userData.initialUrl || url,
+        entry_timestamp: userData.entryTimestamp || new Date().toISOString(),
+        timezone: userData.timezone || '',
+        language: userData.language || '',
+        cookies_enabled: userData.cookiesEnabled ? 1 : 0,
+        geolocation: userData.locationInfo ? JSON.stringify(userData.locationInfo) : null,
+        user_agent: userData.browserInfo?.userAgent || '',
+        device_details: JSON.stringify(userData.deviceInfo || {}),
+        performance_metrics: userData.performanceMetrics ? JSON.stringify(userData.performanceMetrics) : null
+      };
+      
+      const columns = Object.keys(sessionData).join(', ');
+      const placeholders = Object.keys(sessionData).map(() => '?').join(', ');
+      
+      await db.query(
+        `INSERT INTO user_sessions (${columns}) VALUES (${placeholders})`,
+        Object.values(sessionData)
+      );
+    } else {
+      // Update the existing session with any new information
+      if (userData.visibleTime) {
+        await db.query(
+          'UPDATE user_sessions SET visible_time = ? WHERE session_id = ?',
+          [userData.visibleTime, sessionId]
+        );
+      }
+      
+      if (userData.performanceMetrics) {
+        await db.query(
+          'UPDATE user_sessions SET performance_metrics = ? WHERE session_id = ?',
+          [JSON.stringify(userData.performanceMetrics), sessionId]
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Error saving user session:', error);
+    // Continue execution even if session save fails
+  }
+}
 
 // Get heatmap data for visualization
 router.get('/api/heatmap', async (req, res) => {
@@ -193,6 +263,192 @@ router.get('/api/screenshot', async (req, res) => {
     message: 'Screenshots are not available in serverless environment',
     url: url 
   });
+});
+
+// Get visitor statistics
+router.get('/api/visitors', async (req, res) => {
+  try {
+    // Get unique visitor count
+    const [uniqueVisitorsResult] = await db.query(
+      'SELECT COUNT(DISTINCT session_id) as count FROM user_sessions'
+    );
+    const uniqueVisitors = uniqueVisitorsResult[0].count;
+    
+    // Get average time on page
+    const [timeOnPageResult] = await db.query(
+      'SELECT AVG(visible_time) as avg_time FROM user_sessions WHERE visible_time IS NOT NULL'
+    );
+    const avgTimeOnPage = timeOnPageResult[0].avg_time ? Math.floor(timeOnPageResult[0].avg_time / 1000) : 0;
+    
+    // Get mobile percentage
+    const [mobileResult] = await db.query(
+      'SELECT (SUM(is_mobile) / COUNT(*)) * 100 as percentage FROM user_sessions'
+    );
+    const mobilePercentage = mobileResult[0].percentage || 0;
+    
+    // Get browser distribution
+    const [browsersResult] = await db.query(`
+      SELECT browser_name as name, COUNT(*) as count 
+      FROM user_sessions 
+      GROUP BY browser_name 
+      ORDER BY count DESC
+    `);
+    
+    // Get device types
+    const [deviceTypesResult] = await db.query(`
+      SELECT 
+        SUM(CASE WHEN is_mobile = 0 THEN 1 ELSE 0 END) as desktop,
+        SUM(CASE WHEN is_mobile = 1 AND JSON_EXTRACT(device_details, '$.isTablet') != 'true' THEN 1 ELSE 0 END) as mobile,
+        SUM(CASE WHEN JSON_EXTRACT(device_details, '$.isTablet') = 'true' THEN 1 ELSE 0 END) as tablet
+      FROM user_sessions
+    `);
+    
+    // Get recent visitors
+    const [recentVisitors] = await db.query(`
+      SELECT * 
+      FROM user_sessions 
+      ORDER BY entry_timestamp DESC 
+      LIMIT 10
+    `);
+    
+    res.json({
+      uniqueVisitors,
+      avgTimeOnPage,
+      mobilePercentage,
+      browsers: browsersResult,
+      deviceTypes: deviceTypesResult[0],
+      recentVisitors
+    });
+  } catch (error) {
+    console.error('Error fetching visitor statistics:', error);
+    res.status(500).json({ error: 'Failed to fetch visitor statistics' });
+  }
+});
+
+// Export all visitor data
+router.get('/api/visitors/export', async (req, res) => {
+  try {
+    const [visitors] = await db.query('SELECT * FROM user_sessions ORDER BY entry_timestamp DESC');
+    res.json(visitors);
+  } catch (error) {
+    console.error('Error exporting visitor data:', error);
+    res.status(500).json({ error: 'Failed to export visitor data' });
+  }
+});
+
+// Get detailed visitor analytics
+router.get('/api/visitors/analytics', async (req, res) => {
+  try {
+    // Time series data for visitor counts
+    const [dailyVisitors] = await db.query(`
+      SELECT 
+        DATE(entry_timestamp) as date,
+        COUNT(DISTINCT session_id) as visitors
+      FROM user_sessions
+      WHERE entry_timestamp > DATE_SUB(NOW(), INTERVAL 30 DAY)
+      GROUP BY DATE(entry_timestamp)
+      ORDER BY date
+    `);
+    
+    // Countries breakdown (if geolocation is available)
+    const [countries] = await db.query(`
+      SELECT 
+        JSON_UNQUOTE(JSON_EXTRACT(geolocation, '$.country')) as country,
+        COUNT(*) as count
+      FROM user_sessions
+      WHERE geolocation IS NOT NULL
+      GROUP BY country
+      ORDER BY count DESC
+      LIMIT 10
+    `);
+    
+    // Referrers breakdown
+    const [referrers] = await db.query(`
+      SELECT 
+        IF(referrer = '', 'Direct', 
+          IF(referrer LIKE '%google%', 'Google',
+            IF(referrer LIKE '%facebook%', 'Facebook',
+              IF(referrer LIKE '%twitter%', 'Twitter',
+                IF(referrer LIKE '%instagram%', 'Instagram',
+                  IF(referrer LIKE '%linkedin%', 'LinkedIn',
+                    SUBSTRING_INDEX(SUBSTRING_INDEX(referrer, '://', -1), '/', 1)
+                  )
+                )
+              )
+            )
+          )
+        ) as source,
+        COUNT(*) as count
+      FROM user_sessions
+      GROUP BY source
+      ORDER BY count DESC
+      LIMIT 10
+    `);
+    
+    // Language preferences
+    const [languages] = await db.query(`
+      SELECT 
+        language,
+        COUNT(*) as count
+      FROM user_sessions
+      WHERE language != ''
+      GROUP BY language
+      ORDER BY count DESC
+      LIMIT 10
+    `);
+    
+    // Performance metrics averages
+    const [performance] = await db.query(`
+      SELECT
+        AVG(JSON_EXTRACT(performance_metrics, '$.pageLoadTime')) as avg_page_load_time,
+        AVG(JSON_EXTRACT(performance_metrics, '$.domReadyTime')) as avg_dom_ready_time,
+        AVG(JSON_EXTRACT(performance_metrics, '$.networkLatency')) as avg_network_latency
+      FROM user_sessions
+      WHERE performance_metrics IS NOT NULL
+    `);
+    
+    res.json({
+      dailyVisitors,
+      countries,
+      referrers,
+      languages,
+      performance: performance[0]
+    });
+  } catch (error) {
+    console.error('Error fetching visitor analytics:', error);
+    res.status(500).json({ error: 'Failed to fetch visitor analytics' });
+  }
+});
+
+// Get details for a specific visitor session
+router.get('/api/visitors/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    
+    // Get session details
+    const [sessionDetails] = await db.query(
+      'SELECT * FROM user_sessions WHERE session_id = ?',
+      [sessionId]
+    );
+    
+    if (sessionDetails.length === 0) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    // Get click events for this session
+    const [clickEvents] = await db.query(
+      'SELECT * FROM heatmap_events WHERE session_id = ? ORDER BY timestamp',
+      [sessionId]
+    );
+    
+    res.json({
+      session: sessionDetails[0],
+      events: clickEvents
+    });
+  } catch (error) {
+    console.error('Error fetching visitor details:', error);
+    res.status(500).json({ error: 'Failed to fetch visitor details' });
+  }
 });
 
 // Also add this at the end of your API routes file
