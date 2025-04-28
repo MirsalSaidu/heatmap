@@ -11,6 +11,12 @@ function normalizeUrl(url) {
             .split('?')[0];
 }
 
+// Add this at the beginning of your API routes file
+router.use((req, res, next) => {
+  console.log(`API Request: ${req.method} ${req.path}`);
+  next();
+});
+
 // Save heatmap data
 router.post('/api/heatmap', async (req, res) => {
   try {
@@ -119,22 +125,35 @@ router.get('/api/test-db', async (req, res) => {
   }
 });
 
-// Add this route to allow adding a website
-router.post('/api/websites', auth, async (req, res) => {
+// Modify this route to work without auth for now
+router.post('/api/websites', async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ success: false, message: 'URL is required' });
-  // Optionally, validate the URL here as well
+  
   try {
-    new URL(url); // Throws if invalid
-  } catch (e) {
-    return res.status(400).json({ success: false, message: 'Invalid URL' });
-  }
-  try {
-    await db.query('INSERT INTO websites (user_id, url) VALUES (?, ?)', [req.user.id, url]);
+    new URL(url); // Validate URL
+    
+    // Insert without user_id for now
+    await db.query('INSERT INTO websites (url) VALUES (?)', [url]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to add URL', error: err.message });
+    console.error('Error adding website:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to add URL', 
+      error: err.message 
+    });
   }
+});
+
+// Also add this at the end of your API routes file
+router.use((err, req, res, next) => {
+  console.error('API Error:', err);
+  res.status(500).json({ 
+    success: false, 
+    message: 'Server error', 
+    error: err.message 
+  });
 });
 
 module.exports = router; 
