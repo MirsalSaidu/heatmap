@@ -120,26 +120,30 @@ app.get('/admin', checkAuth, checkAdmin, (req, res) => {
 
 // Main route - redirect based on auth status
 app.get('/', (req, res) => {
+  // Check for token in cookies or headers
   const token = req.cookies?.authToken || req.header('x-auth-token');
   
   if (!token) {
+    console.log('No token found, redirecting to login');
     return res.redirect('/login');
   }
   
   try {
     const decoded = session.verifySession(token);
-    if (!decoded) {
+    if (!decoded || !decoded.user) {
+      console.log('Invalid token, redirecting to login');
       res.clearCookie('authToken');
       return res.redirect('/login');
     }
     
+    console.log('Valid token, redirecting to appropriate dashboard');
     if (decoded.user.role === 'admin') {
       return res.redirect('/admin');
     } else {
       return res.redirect('/dashboard');
     }
   } catch (err) {
-    console.error('Auth error:', err);
+    console.error('Auth error at root path:', err);
     res.clearCookie('authToken');
     return res.redirect('/login');
   }

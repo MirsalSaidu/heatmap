@@ -107,4 +107,15 @@ router.get('/api/test', async (req, res) => {
   }
 });
 
+// Add this to your API routes file
+router.get('/api/test-db', async (req, res) => {
+  try {
+    const [result] = await db.query('SELECT 1 as test');
+    res.json({ success: true, result });
+  } catch (error) {
+    console.error('DB test error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router; 

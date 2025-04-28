@@ -36,21 +36,34 @@ router.post('/register', async (req, res) => {
     // Set default role to 'user'
     const role = 'user';
     
-    // Insert user into database
-    const sql = `
-      INSERT INTO users (first_name, last_name, email, password, role, status, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, NOW())
-    `;
-    
-    await db.query(sql, [firstName, lastName, email, hashedPassword, role, 'active']);
-    
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully'
-    });
+    // Insert user into database with proper error handling
+    try {
+      const sql = `
+        INSERT INTO users (first_name, last_name, email, password, role, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())
+      `;
+      
+      await db.query(sql, [firstName, lastName, email, hashedPassword, role, 'active']);
+      
+      res.status(201).json({
+        success: true,
+        message: 'User registered successfully'
+      });
+    } catch (dbError) {
+      console.error('Database error during registration:', dbError);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Database error during registration',
+        error: process.env.NODE_ENV === 'development' ? dbError.message : undefined
+      });
+    }
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error during registration',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

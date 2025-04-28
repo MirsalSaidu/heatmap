@@ -1,18 +1,22 @@
 {
   "version": 2,
+  "builds": [
+    { "src": "server/index.js", "use": "@vercel/node" },
+    { "src": "*.html", "use": "@vercel/static" },
+    { "src": "public/**", "use": "@vercel/static" }
+  ],
   "routes": [
-    { "handle": "filesystem" },
+    { "src": "/api/(.*)", "dest": "server/index.js" },
     { "src": "/login", "dest": "/login.html" },
     { "src": "/register", "dest": "/register.html" },
     { 
       "src": "/dashboard", 
-      "dest": "/api/auth-check?redirect=/dashboard.html" 
+      "dest": "server/index.js" 
     },
     { 
       "src": "/admin", 
-      "dest": "/api/auth-check?redirect=/admin.html&admin=true" 
+      "dest": "server/index.js" 
     },
-    { "src": "/", "dest": "/api/auth-check" },
-    { "src": "/api/(.*)", "dest": "/api/$1" }
+    { "src": "/(.*)", "dest": "server/index.js" }
   ]
 }

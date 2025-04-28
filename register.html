@@ -143,6 +143,12 @@
         return;
       }
       
+      // Show loading state
+      const submitButton = this.querySelector('button[type="submit"]');
+      const originalButtonText = submitButton.innerHTML;
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+      
       // Send registration request
       fetch('/api/auth/register', {
         method: 'POST',
@@ -151,7 +157,20 @@
         },
         body: JSON.stringify({ firstName, lastName, email, password })
       })
-      .then(res => res.json())
+      .then(res => {
+        // Handle non-JSON responses
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return res.json().then(data => {
+            if (!res.ok) throw { status: res.status, data };
+            return data;
+          });
+        } else {
+          return res.text().then(text => {
+            throw { status: res.status, data: { message: text } };
+          });
+        }
+      })
       .then(data => {
         if (data.success) {
           successAlert.textContent = 'Registration successful! Redirecting to login...';
@@ -170,9 +189,14 @@
         }
       })
       .catch(err => {
-        errorAlert.textContent = 'An error occurred. Please try again.';
+        console.error('Registration error:', err);
+        errorAlert.textContent = err.data?.message || 'An error occurred. Please try again.';
         errorAlert.classList.remove('d-none');
-        console.error(err);
+      })
+      .finally(() => {
+        // Restore button state
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
       });
     });
   </script>
