@@ -6,17 +6,27 @@
     { "src": "src/**", "use": "@vercel/static" }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "server/index.js",
-      "headers": {
+    { "src": "/dashboard", "dest": "dashboard.html" },
+    { "src": "/", "dest": "dashboard.html" },
+    { "src": "/api/(.*)", "dest": "server/index.js" },
+    { "src": "/heatmap.js", "dest": "src/heatmap.js", "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Content-Type": "application/javascript"
+      }
+    },
+    { "src": "/src/(.*)", "dest": "src/$1", "headers": {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization"
       }
     },
-    { "src": "/dashboard", "dest": "dashboard.html" },
-    { "src": "/", "dest": "dashboard.html" },
-    { "src": "/(.*)", "dest": "/$1" }
+    { "src": "/(.*)", "dest": "/$1", "headers": {
+        "Access-Control-Allow-Origin": "*", 
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      }
+    }
   ]
 }
