@@ -180,7 +180,7 @@ router.post('/api/websites', async (req, res) => {
   }
 });
 
-// Add a screenshot API endpoint
+// Modify the screenshot API endpoint
 router.get('/api/screenshot', async (req, res) => {
   const { url } = req.query;
   
@@ -188,38 +188,12 @@ router.get('/api/screenshot', async (req, res) => {
     return res.status(400).json({ error: 'URL is required' });
   }
   
-  try {
-    // Create screenshots directory if it doesn't exist
-    const screenshotsDir = path.join(__dirname, '../screenshots');
-    if (!fs.existsSync(screenshotsDir)) {
-      fs.mkdirSync(screenshotsDir);
-    }
-    
-    // Generate a filename based on URL
-    const filename = `${Buffer.from(url).toString('base64').replace(/[/+=]/g, '_')}.png`;
-    const screenshotPath = path.join(screenshotsDir, filename);
-    
-    // Check if we already have a screenshot
-    if (fs.existsSync(screenshotPath)) {
-      return res.sendFile(screenshotPath);
-    }
-    
-    // If not, capture a new screenshot
-    const browser = await puppeteer.launch({ headless: 'new' });
-    const page = await browser.newPage();
-    
-    await page.setViewport({ width: 1280, height: 800 });
-    await page.goto(url, { waitUntil: 'networkidle2' });
-    await page.screenshot({ path: screenshotPath, fullPage: false });
-    
-    await browser.close();
-    
-    // Send the screenshot
-    res.sendFile(screenshotPath);
-  } catch (error) {
-    console.error('Error capturing screenshot:', error);
-    res.status(500).json({ error: 'Failed to capture screenshot' });
-  }
+  // Instead of using Puppeteer, return a simple message
+  res.json({ 
+    success: false, 
+    message: 'Cannot capture screenshots in serverless environment',
+    url: url 
+  });
 });
 
 // Also add this at the end of your API routes file
