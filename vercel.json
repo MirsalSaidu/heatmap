@@ -17,6 +17,8 @@
       "src": "/admin", 
       "dest": "server/index.js" 
     },
-    { "src": "/(.*)", "dest": "server/index.js" }
+    { "src": "/heatmapViewer.js", "dest": "/heatmapViewer.js" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/server/index.js" }
   ]
 }
