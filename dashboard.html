@@ -402,6 +402,11 @@
             <input type="range" class="form-range" min="5" max="50" value="25" id="radius-control">
           </div>
           
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="show-background" checked>
+            <label class="form-check-label" for="show-background">Show Page Background</label>
+          </div>
+          
           <button class="btn btn-primary w-100" id="apply-filters">Apply Filters</button>
         </div>
         
@@ -567,10 +572,12 @@
       const applyBtn = document.getElementById('apply-filters');
       const opacityControl = document.getElementById('opacity-control');
       const radiusControl = document.getElementById('radius-control');
+      const showBackgroundCheck = document.getElementById('show-background');
       
       applyBtn.addEventListener('click', function() {
         viewer.options.maxOpacity = parseFloat(opacityControl.value);
         viewer.options.radius = parseInt(radiusControl.value);
+        viewer.options.showBackground = showBackgroundCheck.checked;
         loadHeatmapData(urlSelect.value, dateFrom.value, dateTo.value);
       });
       
