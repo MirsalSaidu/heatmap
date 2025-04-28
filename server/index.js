@@ -155,6 +155,10 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+app.get('/visitors.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../visitors.html'));
+});
+
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ success: false, message: 'Internal server error', error: err.message });

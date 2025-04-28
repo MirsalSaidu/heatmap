@@ -993,6 +993,12 @@
       // Fix the Analytics, Settings, and Help sidebar links
       document.querySelectorAll('.sidebar .nav-link:not(.active)').forEach(link => {
         link.addEventListener('click', function(e) {
+          // Allow the Visitors link to work normally
+          if (link.getAttribute('href') === '/visitors.html') {
+            return; // Don't prevent default, let the link work
+          }
+          
+          // For other links, show the "coming soon" message
           e.preventDefault();
           alert('This feature is coming soon!');
         });

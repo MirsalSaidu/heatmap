@@ -7,28 +7,11 @@
     { "src": "src/**", "use": "@vercel/static" }
   ],
   "routes": [
-    { 
-      "src": "/api/(.*)", 
-      "dest": "/server/index.js",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, x-auth-token"
-      }
-    },
-    { "src": "/login", "dest": "/login.html" },
-    { "src": "/register", "dest": "/register.html" },
-    { "src": "/dashboard", "dest": "/server/index.js" },
-    { "src": "/admin", "dest": "/server/index.js" },
+    { "src": "/visitors.html", "dest": "/visitors.html" },
+    { "src": "/dashboard.html", "dest": "/dashboard.html" },
+    { "src": "/api/(.*)", "dest": "/server/index.js" },
+    { "src": "/heatmap.js", "dest": "/src/heatmap.js" },
     { "src": "/heatmapViewer.js", "dest": "/heatmapViewer.js" },
-    { 
-      "src": "/heatmap.js", 
-      "dest": "/src/heatmap.js",
-      "headers": {
-        "Content-Type": "application/javascript"
-      }
-    },
-    { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/server/index.js" }
   ]
 }
