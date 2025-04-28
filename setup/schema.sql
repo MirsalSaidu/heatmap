@@ -15,4 +15,16 @@ CREATE TABLE IF NOT EXISTS heatmap_events (
 );
 
 CREATE INDEX idx_heatmap_url ON heatmap_events(url(255));
-CREATE INDEX idx_heatmap_created_at ON heatmap_events(created_at); 
+CREATE INDEX idx_heatmap_created_at ON heatmap_events(created_at);
+
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  role ENUM('user', 'admin') DEFAULT 'user',
+  status ENUM('active', 'inactive', 'pending') DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+); 

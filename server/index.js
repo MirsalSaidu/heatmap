@@ -145,6 +145,20 @@ app.get('/', (req, res) => {
   }
 });
 
+app.get('/api/health', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ success: false, message: 'Internal server error', error: err.message });
+});
+
 // Start server
 app.listen(PORT, async () => {
   try {
