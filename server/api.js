@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('./db');
 const { auth } = require('./auth');
-const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 
@@ -180,7 +179,7 @@ router.post('/api/websites', async (req, res) => {
   }
 });
 
-// Modify the screenshot API endpoint
+// Fix the screenshot API endpoint
 router.get('/api/screenshot', async (req, res) => {
   const { url } = req.query;
   
@@ -189,7 +188,7 @@ router.get('/api/screenshot', async (req, res) => {
   }
   
   // Return a JSON response instead of attempting to use Puppeteer
-  res.json({ 
+  res.status(200).json({ 
     success: false, 
     message: 'Screenshots are not available in serverless environment',
     url: url 
