@@ -70,7 +70,7 @@ const checkAdmin = (req, res, next) => {
 app.use('/api/auth', authRoutes);
 
 // API routes - some may need protection
-app.use('/api/heatmap', apiRoutes);
+app.use('/api', require('./api'));
 
 // Public routes - accessible without login
 app.get('/login', (req, res) => {
