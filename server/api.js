@@ -28,7 +28,7 @@ router.post('/api/heatmap', async (req, res) => {
     // First, save or update the session data
     const sessionId = events[0]?.sessionId;
     if (sessionId && userData) {
-      await saveUserSession(sessionId, userData, normalizedUrl);
+      await saveUserSession(sessionId, userData, normalizedUrl, req);
     }
     
     // Then save the events
@@ -67,7 +67,7 @@ router.post('/api/heatmap', async (req, res) => {
 });
 
 // Helper function to save user session information
-async function saveUserSession(sessionId, userData, url) {
+async function saveUserSession(sessionId, userData, url, req) {
   try {
     // Check if the session record already exists
     const [existingSession] = await db.query(
@@ -75,10 +75,37 @@ async function saveUserSession(sessionId, userData, url) {
       [sessionId]
     );
     
+    // Get IP address from request
+    const ip = req.headers['x-forwarded-for'] || 
+               req.headers['x-real-ip'] || 
+               req.connection.remoteAddress || 
+               '0.0.0.0';
+    
+    // Get approximate location from IP
+    let location = null;
+    try {
+      // Simple IP-based geolocation without requiring user permission
+      const geoResponse = await fetch(`https://ipapi.co/${ip}/json/`);
+      if (geoResponse.ok) {
+        const geoData = await geoResponse.json();
+        location = {
+          country: geoData.country_name,
+          city: geoData.city,
+          region: geoData.region,
+          latitude: geoData.latitude,
+          longitude: geoData.longitude
+        };
+      }
+    } catch (geoError) {
+      console.error('Error fetching location data:', geoError);
+    }
+    
     if (existingSession.length === 0) {
       // Create a new session record
       const sessionData = {
         session_id: sessionId,
+        ip_address: ip,
+        location: location ? JSON.stringify(location) : null,
         browser_name: userData.browserInfo?.browserName || 'Unknown',
         browser_version: userData.browserInfo?.browserVersion || 'Unknown',
         os_name: userData.browserInfo?.osName || 'Unknown',
@@ -92,7 +119,6 @@ async function saveUserSession(sessionId, userData, url) {
         timezone: userData.timezone || '',
         language: userData.language || '',
         cookies_enabled: userData.cookiesEnabled ? 1 : 0,
-        geolocation: userData.locationInfo ? JSON.stringify(userData.locationInfo) : null,
         user_agent: userData.browserInfo?.userAgent || '',
         device_details: JSON.stringify(userData.deviceInfo || {}),
         performance_metrics: userData.performanceMetrics ? JSON.stringify(userData.performanceMetrics) : null

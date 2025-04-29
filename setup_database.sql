@@ -28,4 +28,9 @@ CREATE TABLE IF NOT EXISTS user_sessions (
 ALTER TABLE heatmap_events
 ADD COLUMN IF NOT EXISTS scroll_x INT DEFAULT 0,
 ADD COLUMN IF NOT EXISTS scroll_y INT DEFAULT 0,
-ADD COLUMN IF NOT EXISTS click_details JSON; 
+ADD COLUMN IF NOT EXISTS click_details JSON;
+
+-- Update user_sessions table to add ip_address and location fields
+ALTER TABLE user_sessions
+ADD COLUMN IF NOT EXISTS ip_address VARCHAR(45),
+ADD COLUMN IF NOT EXISTS location JSON; 
